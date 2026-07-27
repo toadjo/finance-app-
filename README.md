@@ -45,7 +45,7 @@ Either package registers Ledger in your application menu under Office/Finance. B
 ```bash
 npm run electron:dev   # Vite + Electron with hot reload
 npm run dev            # renderer only, in a browser at localhost:5173
-npm test               # 62 unit tests over the maths
+npm test               # 91 unit tests over the maths
 npm run typecheck
 ```
 
