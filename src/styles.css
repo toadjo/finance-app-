@@ -431,6 +431,15 @@ textarea {
   color: var(--negative);
 }
 
+.chip.planning {
+  background: var(--accent-soft);
+  color: #a5b4fc;
+}
+
+:root.light .chip.planning {
+  color: var(--accent);
+}
+
 .chip.complete {
   background: rgba(99, 102, 241, 0.16);
   color: #a5b4fc;

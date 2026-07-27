@@ -10,11 +10,14 @@ import {
   summariseMonth,
 } from '../lib/selectors'
 import { formatMoney, formatPercent } from '../lib/money'
-import { daysInMonth, formatDay, formatMonth, todayKey, type MonthKey } from '../lib/date'
+import { daysInMonth, daysUntil, formatDay, formatMonth, todayKey, type MonthKey } from '../lib/date'
 import { Card, CardHeader, EmptyState, ProgressBar, Stat } from './ui'
 import { DonutChart, TrendChart } from './charts'
 import { buildAlerts, projectedSpend, safeToSpend } from '../lib/intelligence/insights'
 import { dueDescription, upcomingBills } from '../lib/intelligence/recurring'
+import { monthMode, planMonth, plannedItems } from '../lib/intelligence/plan'
+import { nextPayday, paydaysIn } from '../lib/payday'
+import { PlanView } from './PlanView'
 import type { View } from '../App'
 
 export function Dashboard({ month, onNavigate }: { month: MonthKey; onNavigate: (view: View) => void }) {
@@ -38,6 +41,28 @@ export function Dashboard({ month, onNavigate }: { month: MonthKey; onNavigate: 
   const alerts = useMemo(() => buildAlerts(state, month, money), [state, month, money])
   const bills = useMemo(() => upcomingBills(state.expenses, month), [state.expenses, month])
 
+  const mode = monthMode(month)
+  const plan = useMemo(() => planMonth(state, month), [state, month])
+  const items = useMemo(() => (mode === 'future' ? plannedItems(state, month) : []), [state, month, mode])
+  const payday = useMemo(() => nextPayday(state.incomes), [state.incomes])
+  const paydays = useMemo(() => paydaysIn(state.incomes, month), [state.incomes, month])
+  const daysToPay = payday ? daysUntil(payday.date) : undefined
+
+  // A future month is a plan, not a record — show what it will look like instead.
+  if (mode === 'future') {
+    return (
+      <PlanView
+        month={month}
+        plan={plan}
+        items={items}
+        paydays={paydays}
+        categories={state.categories}
+        settings={settings}
+        onNavigate={onNavigate}
+      />
+    )
+  }
+
   const previous = trend[trend.length - 2]
   const spendDelta = previous && previous.spent > 0 ? (summary.spent - previous.spent) / previous.spent : undefined
 
@@ -47,7 +72,15 @@ export function Dashboard({ month, onNavigate }: { month: MonthKey; onNavigate: 
         <Stat
           label="Income"
           value={formatMoney(summary.income, settings)}
-          note={state.incomes.length === 0 ? 'Add a source to get started' : `${state.incomes.length} sources`}
+          note={
+            state.incomes.length === 0
+              ? 'Add a source to get started'
+              : daysToPay !== undefined
+                ? daysToPay === 0
+                  ? `Payday today — ${formatMoney(payday!.total, settings)}`
+                  : `${formatMoney(payday!.total, settings)} lands in ${daysToPay} ${daysToPay === 1 ? 'day' : 'days'}`
+                : `${state.incomes.length} sources · no payday set`
+          }
         />
         <Stat
           label="Spent"

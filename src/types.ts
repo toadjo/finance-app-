@@ -11,6 +11,12 @@ export interface IncomeSource {
   startMonth?: string
   /** Inclusive 'YYYY-MM'. Omitted means "still active". */
   endMonth?: string
+  /**
+   * Any one date this source paid out, as 'YYYY-MM-DD'. Combined with `frequency`
+   * it yields every past and future payday, so weekly, monthly and yearly sources
+   * all need just this one field. Omitted means "payday unknown".
+   */
+  payAnchor?: string
   note?: string
 }
 

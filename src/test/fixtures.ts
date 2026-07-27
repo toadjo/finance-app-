@@ -31,8 +31,10 @@ export function makeLedger(): AppState {
     expenses.push(expense(`${month}-20`, month === '2026-06' ? 15.99 : 12.99, 'subscriptions', 'Netflix'))
   }
 
-  // Groceries: regular-ish but under different shop names, so they never group
-  // into a single recurring charge.
+  // Groceries: three different shops, each visited on the same day for the same
+  // amount every month. They stay separate from each other (different notes), but
+  // each is genuinely regular, so each is detected as its own recurring charge —
+  // which is what makes them useful for testing forward projection.
   const shops = ['Aldi', 'Tesco', 'Corner shop']
   for (const month of MONTHS) {
     shops.forEach((shop, i) => {

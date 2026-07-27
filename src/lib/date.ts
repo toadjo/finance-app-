@@ -41,6 +41,43 @@ export function daysInMonth(month: MonthKey): number {
   return new Date(y, m, 0).getDate()
 }
 
+/** Local-midnight epoch millis for a day key. */
+export function dayToTime(day: DayKey): number {
+  const [y, m, d] = day.split('-').map(Number)
+  return new Date(y, m - 1, d).getTime()
+}
+
+export function timeToDay(time: number): DayKey {
+  const d = new Date(time)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+export function addDays(day: DayKey, delta: number): DayKey {
+  return timeToDay(dayToTime(day) + delta * 86_400_000)
+}
+
+/**
+ * The same day-of-month, `months` later, clamped to the target month's length —
+ * so the 31st lands on the 30th (or 28th) rather than spilling into the next month.
+ */
+export function addMonthsToDay(day: DayKey, months: number): DayKey {
+  const [y, m, d] = day.split('-').map(Number)
+  const target = new Date(y, m - 1 + months, 1)
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate()
+  target.setDate(Math.min(d, lastDay))
+  return timeToDay(target.getTime())
+}
+
+/** 0 = Sunday. */
+export function weekdayOf(day: DayKey): number {
+  return new Date(dayToTime(day)).getDay()
+}
+
+export function formatDayShort(day: DayKey, locale = 'en-US'): string {
+  const [y, m, d] = day.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
 export function formatMonth(month: MonthKey, locale = 'en-US'): string {
   const [y, m] = month.split('-').map(Number)
   return new Date(y, m - 1, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' })

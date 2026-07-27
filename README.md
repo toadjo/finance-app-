@@ -63,11 +63,18 @@ budget per category, shown as a bar that turns red when you go over. **The categ
 type the note.**
 
 **Income** — recurring sources at any cadence (weekly → yearly), normalised to a monthly figure. Sources can
-have a start and/or end month, so a job you left stops counting toward later months.
+have a start and/or end month, so a job you left stops counting toward later months. Give a source a
+**payday** — any one date it paid out — and the cadence derives every past and future payday from it, so the
+dashboard can tell you what lands when, and a five-payday month reads bigger than a four-payday one.
 
 **Goals** — a target, an optional deadline, and contributions you log. Each goal is **coached**: at the rate
 you're actually funding it, when does it land, and what exactly would fix it. Goals are also checked
 collectively against what you genuinely have spare.
+
+**Planning ahead** — step the month picker forward and a future month opens as a plan rather than a record:
+what your paydays bring in, the recurring bills your history says are coming, what your goals need, and
+what's genuinely left. Enter expenses against any future month to plan against them, and the month warns
+you if it's over budget before it even starts.
 
 **Settings** — currency and formatting, custom categories, JSON export/import through native dialogs, and
 the on-disk backup list.
@@ -93,6 +100,11 @@ goals need this month — spread across the days remaining. Alerts fire for a mo
 expense above the 90th percentile for its category, and categories pacing well above their own norm.
 The month-end projection excludes recurring charges from the burn rate, since rent landing on the 1st says
 nothing about your daily spending.
+
+**Paydays and forward planning.** One anchor date per income source yields every payday at any cadence,
+handling the awkward cases: the 31st clamps to the 28th in February without dragging later months off the
+31st, and fortnightly pay lands five times in some months. Future months are projected from your recurring
+charges, so next March already knows about the rent.
 
 **Goal coaching.** Your actual contribution rate gives a projected landing month, compared against the
 deadline: *"At $500 a month this lands 5 months late. Add $250 a month, or move the deadline to 2027-07."*

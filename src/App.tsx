@@ -122,6 +122,7 @@ function Shell() {
                   Today
                 </button>
               )}
+              {month > currentMonth() && <span className="chip planning">Planning ahead</span>}
               <div className="month-picker">
                 <button className="icon-button" aria-label="Previous month" onClick={() => setMonth(addMonths(month, -1))}>
                   ‹
@@ -131,7 +132,9 @@ function Shell() {
                   className="icon-button"
                   aria-label="Next month"
                   onClick={() => setMonth(addMonths(month, 1))}
-                  disabled={month >= currentMonth()}
+                  // Planning ahead is the point; two years is far enough to be useful
+                  // without letting you wander somewhere meaningless.
+                  disabled={month >= addMonths(currentMonth(), 24)}
                 >
                   ›
                 </button>

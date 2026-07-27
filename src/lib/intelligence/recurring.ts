@@ -144,6 +144,40 @@ export function detectRecurring(expenses: Expense[]): RecurringBill[] {
   return bills.sort((a, b) => a.nextDue.localeCompare(b.nextDue))
 }
 
+/**
+ * Bills projected into `month`, however far ahead it is, minus any you've already
+ * logged yourself. This is what makes a future month worth looking at: next March
+ * starts out already knowing about the rent and the subscriptions.
+ */
+export function projectedBillsIn(expenses: Expense[], month: MonthKey): { bill: RecurringBill; date: DayKey }[] {
+  const alreadyLogged = new Set(
+    expenses.filter((e) => monthOf(e.date) === month).map((e) => groupKey(e)),
+  )
+
+  const projected: { bill: RecurringBill; date: DayKey }[] = []
+
+  for (const bill of detectRecurring(expenses)) {
+    // Don't double-count a bill you've already entered for that month.
+    if (alreadyLogged.has(bill.key)) continue
+
+    const cadence = CADENCES.find((c) => c.frequency === bill.frequency)!
+    let cursor = bill.lastDate
+    // Step forward a bounded number of cycles rather than looping unguarded.
+    for (let i = 0; i < 400 && monthOf(cursor) <= month; i++) {
+      cursor = advance(cursor, cadence.frequency, cadence.days)
+      if (monthOf(cursor) === month) projected.push({ bill, date: cursor })
+      else if (monthOf(cursor) > month) break
+    }
+  }
+
+  return projected.sort((a, b) => a.date.localeCompare(b.date))
+}
+
+/** What the projected bills for `month` are expected to cost in total. */
+export function projectedBillTotal(expenses: Expense[], month: MonthKey): number {
+  return projectedBillsIn(expenses, month).reduce((sum, p) => sum + p.bill.typicalAmount, 0)
+}
+
 /** Bills expected to land in `month` that haven't been paid yet. */
 export function upcomingBills(expenses: Expense[], month: MonthKey): RecurringBill[] {
   const today = todayKey()
