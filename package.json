@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dist": "npm run build && electron-builder --linux AppImage deb",
+    "dist": "npm run build && electron-builder --linux AppImage deb rpm",
     "dist:dir": "npm run build && electron-builder --linux dir"
   },
   "dependencies": {
@@ -50,7 +50,8 @@
       "maintainer": "toadjo <toadjo@users.noreply.github.com>",
       "target": [
         "AppImage",
-        "deb"
+        "deb",
+        "rpm"
       ],
       "category": "Office;Finance",
       "icon": "electron/icon.png",
@@ -66,6 +67,17 @@
         "libxtst6",
         "xdg-utils",
         "libatspi2.0-0"
+      ]
+    },
+    "rpm": {
+      "depends": [
+        "gtk3",
+        "libnotify",
+        "nss",
+        "libXScrnSaver",
+        "libXtst",
+        "xdg-utils",
+        "at-spi2-core"
       ]
     }
   }

@@ -25,13 +25,20 @@ chmod +x release/Ledger-*.AppImage
 
 If your distro ships without FUSE, run it as `./Ledger-*.AppImage --appimage-extract-and-run`.
 
-**Debian / Ubuntu:**
+**Debian / Ubuntu / Mint:**
 
 ```bash
 sudo apt install ./release/ledger_*_amd64.deb
 ```
 
-That registers Ledger in your application menu under Office/Finance.
+**Fedora / RHEL / openSUSE:**
+
+```bash
+sudo dnf install ./release/ledger-*.x86_64.rpm
+```
+
+Either package registers Ledger in your application menu under Office/Finance. Building the RPM needs
+`rpmbuild` on the build machine (`sudo dnf install rpm-build`, or `sudo apt install rpm` on Debian).
 
 ## Develop
 
