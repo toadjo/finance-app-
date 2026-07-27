@@ -1,9 +1,10 @@
 import type { AppState } from '../../types'
 import { monthOf, todayKey, type MonthKey } from '../date'
-import { expensesForMonth, goalProgress, monthlyIncome, sumAmounts } from '../selectors'
+import { expensesForMonth, monthlyIncome, sumAmounts } from '../selectors'
 import { projectedBillsIn } from './recurring'
 import { incomeArrivingIn, paydaysIn } from '../payday'
 import { scheduledIn } from '../recurringRules'
+import { allocateSavings } from './allocate'
 
 /**
  * Looking forward rather than back: what a month is shaped like before it happens,
@@ -48,12 +49,13 @@ export function planMonth(state: AppState, month: MonthKey): MonthPlan {
   const scheduled = pendingScheduled(state, month).reduce((sum, item) => sum + item.rule.amount, 0)
   const expectedBills = uncoveredBills(state, month).reduce((sum, p) => sum + p.bill.typicalAmount, 0)
 
-  const goalFunding = state.goals.reduce((sum, goal) => {
-    const progress = goalProgress(goal)
-    if (progress.status === 'complete' || progress.requiredPerMonth === undefined) return sum
+  // What the savings plan commits, so a flexible goal leaves spending money intact.
+  const goalFunding = allocateSavings(state, month).allocations.reduce((sum, allocation) => {
     // A future month's goal money hasn't been contributed yet by definition.
-    const alreadyGiven = sumAmounts(goal.contributions.filter((c) => monthOf(c.date) === month))
-    return sum + Math.max(0, progress.requiredPerMonth - alreadyGiven)
+    const alreadyGiven = sumAmounts(
+      allocation.goal.contributions.filter((c) => monthOf(c.date) === month),
+    )
+    return sum + Math.max(0, allocation.monthly - alreadyGiven)
   }, 0)
 
   const leftOver = income - planned - scheduled - expectedBills - goalFunding

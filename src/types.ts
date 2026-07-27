@@ -39,6 +39,17 @@ export interface Category {
   budget?: number
 }
 
+/**
+ * How a goal should be funded.
+ * - `strict`: the deadline rules. Save whatever hitting it requires.
+ * - `balanced`: your spending money rules. Save what's comfortably spare and let the
+ *   finish date move to suit.
+ */
+export type Pace = 'strict' | 'balanced'
+
+/** How much of your spare money should go to saving rather than living. */
+export type Lifestyle = 'relaxed' | 'balanced' | 'focused'
+
 export interface Contribution {
   id: string
   amount: number
@@ -56,6 +67,8 @@ export interface Goal {
   deadline?: string
   createdAt: string
   note?: string
+  /** Omitted on goals made before paces existed; those behave as 'strict'. */
+  pace?: Pace
   contributions: Contribution[]
 }
 
@@ -94,6 +107,8 @@ export interface RecurringRule {
 export interface Settings {
   currency: string
   locale: string
+  /** Drives how much of your spare money the app earmarks for goals. */
+  lifestyle?: Lifestyle
 }
 
 export interface AppState {

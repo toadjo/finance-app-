@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../state/store'
-import type { Goal } from '../types'
-import { goalProgress, requiredMonthlySavings, summariseMonth, type GoalProgress, type GoalStatus } from '../lib/selectors'
-import { coachGoal, coachPortfolio } from '../lib/intelligence/coach'
+import type { Goal, Lifestyle, Pace } from '../types'
+import { goalProgress, requiredMonthlySavings, type GoalProgress, type GoalStatus } from '../lib/selectors'
+import { coachGoal } from '../lib/intelligence/coach'
+import { allocateSavings, paceOf, LIFESTYLE_BLURB, LIFESTYLE_LABEL, type SavingsPlan } from '../lib/intelligence/allocate'
 import { formatMoney, formatPercent, parseAmount } from '../lib/money'
 import { formatDay, todayKey, type MonthKey } from '../lib/date'
 import { Card, CardHeader, EmptyState, Field, Modal, ProgressBar, Stat } from './ui'
@@ -22,11 +23,7 @@ export function GoalsView({ month }: { month: MonthKey }) {
   const [expanded, setExpanded] = useState<string | null>(null)
 
   const progress = useMemo(() => state.goals.map(goalProgress), [state.goals])
-  const summary = useMemo(() => summariseMonth(state, month), [state, month])
-  const portfolio = useMemo(
-    () => coachPortfolio(state, month, (n) => formatMoney(n, state.settings)),
-    [state, month],
-  )
+  const savings = useMemo(() => allocateSavings(state, month), [state, month])
   const needed = requiredMonthlySavings(state.goals)
   const totalTarget = state.goals.reduce((s, g) => s + g.target, 0)
   const totalSaved = progress.reduce((s, p) => s + p.saved, 0)
@@ -40,21 +37,19 @@ export function GoalsView({ month }: { month: MonthKey }) {
           note={totalTarget > 0 ? `${formatPercent(totalSaved / totalTarget, state.settings.locale)} of ${formatMoney(totalTarget, state.settings, { decimals: false })}` : 'Across all goals'}
         />
         <Stat
-          label="Needed per month"
-          value={formatMoney(needed, state.settings)}
-          note="To hit every dated goal on time"
+          label="Saving per month"
+          value={formatMoney(savings.totalSaving, state.settings)}
+          note={
+            needed > savings.totalSaving
+              ? `${formatMoney(needed, state.settings)} would hit every deadline exactly`
+              : 'On your current plan'
+          }
         />
         <Stat
-          label="Left over this month"
-          value={formatMoney(summary.net, state.settings)}
-          tone={summary.net >= needed ? 'positive' : summary.net < 0 ? 'negative' : 'neutral'}
-          note={
-            needed === 0
-              ? 'Income minus spending'
-              : summary.net >= needed
-                ? `Covers your goals with ${formatMoney(summary.net - needed, state.settings)} spare`
-                : `${formatMoney(needed - summary.net, state.settings)} short of your goal pace`
-          }
+          label="Free to spend"
+          value={formatMoney(savings.spendingAllowance, state.settings)}
+          tone={savings.spendingAllowance >= 0 ? 'positive' : 'negative'}
+          note={`After saving, from ${formatMoney(savings.spare, state.settings)} typically spare`}
         />
         <Stat
           label="Goals reached"
@@ -63,32 +58,61 @@ export function GoalsView({ month }: { month: MonthKey }) {
         />
       </div>
 
-      {portfolio.priority.length > 0 && (
-        <Card>
-          <CardHeader title="Can you actually afford these?" />
-          <div className="list-row" style={{ alignItems: 'flex-start', borderBottom: 0, paddingTop: 0 }}>
-            <span className={`alert-mark ${portfolio.overcommitted ? 'warn' : 'info'}`} aria-hidden="true">
-              {portfolio.overcommitted ? '▲' : 'i'}
-            </span>
-            <span className="grow">{portfolio.advice}</span>
+      <Card>
+        <CardHeader
+          title="How you want to live"
+          hint="This decides how much of your spare money goes to goals, and how much stays yours to spend"
+        />
+        <div className="pace-picker">
+          {(['relaxed', 'balanced', 'focused'] as Lifestyle[]).map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`pace-option ${(state.settings.lifestyle ?? 'balanced') === option ? 'selected' : ''}`}
+              onClick={() => dispatch({ type: 'settings/update', patch: { lifestyle: option } })}
+            >
+              <strong>{LIFESTYLE_LABEL[option]}</strong>
+              <span>{LIFESTYLE_BLURB[option]}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="grid stats" style={{ marginTop: 16 }}>
+          <div className="stat">
+            <div className="stat-label">Spare each month</div>
+            <div className="stat-value numeric">{formatMoney(savings.spare, state.settings)}</div>
+            <div className="stat-note">Typical income minus what you actually spend</div>
           </div>
-          {portfolio.overcommitted && (
-            <div className="stack" style={{ gap: 8, marginTop: 4 }}>
-              {portfolio.priority.map(({ goal, requiredPerMonth, fundable }) => (
-                <div className="legend-row" key={goal.id} style={{ justifyContent: 'space-between' }}>
-                  <span className="truncate">
-                    {fundable ? '✓' : '—'} {goal.name}
-                  </span>
-                  <span className="numeric faint">
-                    {formatMoney(requiredPerMonth, state.settings)}/mo
-                    {fundable ? '' : ' · not covered'}
-                  </span>
-                </div>
-              ))}
+          <div className="stat">
+            <div className="stat-label">Going to goals</div>
+            <div className="stat-value numeric">{formatMoney(savings.totalSaving, state.settings)}</div>
+            <div className="stat-note">Across {savings.allocations.length} unfinished {savings.allocations.length === 1 ? 'goal' : 'goals'}</div>
+          </div>
+          <div className="stat">
+            <div className="stat-label">Yours to spend</div>
+            <div className={`stat-value numeric ${savings.spendingAllowance >= 0 ? 'positive' : 'negative'}`}>
+              {formatMoney(savings.spendingAllowance, state.settings)}
             </div>
-          )}
-        </Card>
-      )}
+            <div className="stat-note">After goals are funded</div>
+          </div>
+        </div>
+
+        <div className="list-row" style={{ alignItems: 'flex-start', marginTop: 8, borderBottom: 0 }}>
+          <span className={`alert-mark ${savings.overCommitted ? 'warn' : 'info'}`} aria-hidden="true">
+            {savings.overCommitted ? '▲' : 'i'}
+          </span>
+          <span className="grow">
+            {savings.advice}
+            {savings.allocations.length > 0 && savings.allocations.every((a) => a.pace === 'strict') && (
+              <div className="faint" style={{ marginTop: 4 }}>
+                Every goal you have is on a fixed deadline, so this setting has nothing to flex — their
+                amounts are set by their dates. Switch one to <strong>Flexible</strong> to let it adapt to
+                how you want to live.
+              </div>
+            )}
+          </span>
+        </div>
+      </Card>
 
       <Card>
         <CardHeader
@@ -113,6 +137,7 @@ export function GoalsView({ month }: { month: MonthKey }) {
               <GoalCard
                 key={p.goal.id}
                 progress={p}
+                savings={savings}
                 open={expanded === p.goal.id}
                 onToggle={() => setExpanded(expanded === p.goal.id ? null : p.goal.id)}
                 onEdit={() => setEditing(p.goal)}
@@ -132,6 +157,7 @@ export function GoalsView({ month }: { month: MonthKey }) {
 
 function GoalCard({
   progress: p,
+  savings,
   open,
   onToggle,
   onEdit,
@@ -139,6 +165,7 @@ function GoalCard({
   onDelete,
 }: {
   progress: GoalProgress
+  savings: SavingsPlan
   open: boolean
   onToggle: () => void
   onEdit: () => void
@@ -149,6 +176,7 @@ function GoalCard({
   const { goal } = p
   const color = p.status === 'complete' ? 'var(--accent)' : p.status === 'behind' || p.status === 'overdue' ? 'var(--warning)' : 'var(--positive)'
   const coaching = useMemo(() => coachGoal(goal, (n) => formatMoney(n, state.settings)), [goal, state.settings])
+  const allocation = savings.allocations.find((a) => a.goal.id === goal.id)
 
   return (
     <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
@@ -164,6 +192,7 @@ function GoalCard({
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="chip">{allocation?.pace === 'balanced' ? 'Flexible' : 'Fixed date'}</span>
           <span className={`chip ${p.status}`}>{STATUS_LABEL[p.status]}</span>
           <button className="btn small" onClick={onContribute}>
             Add money
@@ -181,7 +210,35 @@ function GoalCard({
         <ProgressBar value={p.progress} color={color} />
       </div>
 
-      {coaching.verdict !== 'complete' && (
+      {allocation && p.status !== 'complete' && (
+        <div className={`coach-line ${allocation.onTimeForDeadline === false ? 'late' : ''}`}>
+          <span aria-hidden="true">{allocation.onTimeForDeadline === false ? '⚠' : '✓'}</span>
+          <span>
+            {allocation.pace === 'balanced' ? (
+              allocation.monthly > 0 ? (
+                <>
+                  Putting aside <strong>{formatMoney(allocation.monthly, state.settings)}</strong> a month on your
+                  current plan — on track for <strong>{allocation.projectedCompletion}</strong>
+                  {allocation.monthsLate !== undefined && allocation.monthsLate > 0
+                    ? `, ${allocation.monthsLate} month${allocation.monthsLate === 1 ? '' : 's'} past your target date.`
+                    : '.'}
+                </>
+              ) : (
+                <>Nothing spare to put towards this yet — it'll start funding itself when your months end in the black.</>
+              )
+            ) : (
+              <>
+                Fixed deadline: <strong>{formatMoney(allocation.monthly, state.settings)}</strong> a month to land on
+                time.
+                {allocation.shortfall !== undefined && allocation.shortfall > 0
+                  ? ` That's ${formatMoney(allocation.shortfall, state.settings)} more than your saving style sets aside, so it comes out of spending money.`
+                  : ''}
+              </>
+            )}
+          </span>
+        </div>
+      )}
+      {coaching.verdict !== 'complete' && allocation?.pace === 'strict' && (
         <div className={`coach-line ${coaching.verdict === 'late' || coaching.verdict === 'stalled' ? 'late' : ''}`}>
           <span aria-hidden="true">{coaching.verdict === 'late' || coaching.verdict === 'stalled' ? '⚠' : '✓'}</span>
           <span>{coaching.advice}</span>
@@ -242,6 +299,8 @@ function GoalForm({ goal, onClose }: { goal?: Goal; onClose: () => void }) {
   const [target, setTarget] = useState(goal ? String(goal.target) : '')
   const [deadline, setDeadline] = useState(goal?.deadline ?? '')
   const [note, setNote] = useState(goal?.note ?? '')
+  // New goals default to flexible: keeping money to live on is the friendlier default.
+  const [pace, setPace] = useState<Pace>(goal ? paceOf(goal) : 'balanced')
   const [error, setError] = useState('')
 
   function submit(e: React.FormEvent) {
@@ -250,7 +309,13 @@ function GoalForm({ goal, onClose }: { goal?: Goal; onClose: () => void }) {
     if (!name.trim()) return setError('Give the goal a name.')
     if (value <= 0) return setError('Set a target greater than zero.')
 
-    const payload = { name: name.trim(), target: value, deadline: deadline || undefined, note: note.trim() || undefined }
+    const payload = {
+      name: name.trim(),
+      target: value,
+      deadline: deadline || undefined,
+      note: note.trim() || undefined,
+      pace,
+    }
     if (goal) dispatch({ type: 'goal/update', id: goal.id, patch: payload })
     else dispatch({ type: 'goal/add', goal: payload })
     onClose()
@@ -270,6 +335,30 @@ function GoalForm({ goal, onClose }: { goal?: Goal; onClose: () => void }) {
             <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
           </Field>
         </div>
+        <Field label="How should we fund it?">
+          <div className="pace-picker">
+            <button
+              type="button"
+              className={`pace-option ${pace === 'balanced' ? 'selected' : ''}`}
+              onClick={() => setPace('balanced')}
+            >
+              <strong>Flexible</strong>
+              <span>Save what you can comfortably spare. We'll tell you when it lands — the date moves, your spending money doesn't.</span>
+            </button>
+            <button
+              type="button"
+              className={`pace-option ${pace === 'strict' ? 'selected' : ''}`}
+              onClick={() => setPace('strict')}
+            >
+              <strong>Fixed deadline</strong>
+              <span>Hit the date no matter what. We'll set the amount you must save, even if it leaves less to live on.</span>
+            </button>
+          </div>
+        </Field>
+        {pace === 'strict' && !deadline && (
+          <div className="faint">A fixed deadline needs a date — without one this behaves like flexible.</div>
+        )}
+
         <Field label="Note (optional)" error={error}>
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="3 months of rent" />
         </Field>

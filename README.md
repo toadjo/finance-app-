@@ -47,7 +47,7 @@ Fedora and Debian, and claiming it would collide with a real distro package. Bui
 ```bash
 npm run electron:dev   # Vite + Electron with hot reload
 npm run dev            # renderer only, in a browser at localhost:5173
-npm test               # 112 unit tests over the maths
+npm test               # 125 unit tests over the maths
 npm run typecheck
 ```
 
@@ -69,9 +69,17 @@ have a start and/or end month, so a job you left stops counting toward later mon
 **payday** — any one date it paid out — and the cadence derives every past and future payday from it, so the
 dashboard can tell you what lands when, and a five-payday month reads bigger than a four-payday one.
 
-**Goals** — a target, an optional deadline, and contributions you log. Each goal is **coached**: at the rate
-you're actually funding it, when does it land, and what exactly would fix it. Goals are also checked
-collectively against what you genuinely have spare.
+**Goals** — a target, an optional deadline, contributions you log, and a **pace**:
+
+- **Fixed deadline** — the date is a promise. The app tells you what you must save each month to hit it,
+  even when that eats into spending money.
+- **Flexible** — your spending money is the promise. The app funds the goal from what's comfortably spare
+  and tells you when it will actually land; the date moves instead of your life.
+
+Alongside that, **how you want to live** (Enjoy it now / A bit of both / Save hard) sets how much of your
+spare money goes to goals at all. Change it and every number moves: what you save, when each flexible goal
+lands, and what's genuinely yours to spend. Fixed-deadline goals are funded first; whatever the budget has
+left is shared among the flexible ones in proportion to what each still needs.
 
 **Recurring** — declare the things that repeat: rent, subscriptions, and standing transfers into a savings
 goal. Each one logs itself as it falls due (including anything missed since its start date), or you can set
@@ -111,6 +119,12 @@ nothing about your daily spending.
 handling the awkward cases: the 31st clamps to the 28th in February without dragging later months off the
 31st, and fortnightly pay lands five times in some months. Future months are projected from your recurring
 charges, so next March already knows about the rent.
+
+**Saving versus spending.** Spare money is the median of your last three months' income minus spending. Your
+lifestyle setting earmarks a share of it for saving (25% / 50% / 80%), fixed-deadline goals are funded from
+that first, and the rest is split across flexible goals by how much each still needs. What's left is your
+spending allowance — and safe-to-spend uses the *allocated* figure, not the strict requirement, so choosing
+"flexible" genuinely gives you more to live on rather than just relabelling the same number.
 
 **Goal coaching.** Your actual contribution rate gives a projected landing month, compared against the
 deadline: *"At $500 a month this lands 5 months late. Add $250 a month, or move the deadline to 2027-07."*

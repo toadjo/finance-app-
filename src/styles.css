@@ -788,3 +788,43 @@ th.right {
     padding: 18px 16px 56px;
   }
 }
+
+/* ---------- pace & lifestyle pickers ---------- */
+
+.pace-picker {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.pace-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 13px;
+  text-align: left;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.pace-option:hover {
+  background: var(--surface-hover);
+}
+
+.pace-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.pace-option strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pace-option span {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}

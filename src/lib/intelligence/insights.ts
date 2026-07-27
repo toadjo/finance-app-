@@ -1,7 +1,8 @@
 import type { AppState, Expense } from '../../types'
 import { daysInMonth, monthOf, monthRange, todayKey, type MonthKey } from '../date'
-import { expensesForMonth, goalProgress, monthlyIncome, sumAmounts } from '../selectors'
+import { expensesForMonth, monthlyIncome, sumAmounts } from '../selectors'
 import { committedSpend, detectRecurring, groupKey, upcomingBills } from './recurring'
+import { allocateSavings } from './allocate'
 
 /**
  * The "what should I do about it" layer: how much is genuinely free to spend, what
@@ -28,11 +29,13 @@ export function safeToSpend(state: AppState, month: MonthKey): SafeToSpend {
   const spent = sumAmounts(expensesForMonth(state.expenses, month))
   const committed = committedSpend(state.expenses, month)
 
-  const goalFunding = state.goals.reduce((sum, goal) => {
-    const progress = goalProgress(goal)
-    if (progress.status === 'complete' || progress.requiredPerMonth === undefined) return sum
-    const alreadyGiven = sumAmounts(goal.contributions.filter((c) => monthOf(c.date) === month))
-    return sum + Math.max(0, progress.requiredPerMonth - alreadyGiven)
+  // Use what the savings plan actually commits, not what a strict schedule would
+  // demand: a flexible goal shouldn't swallow money you meant to live on.
+  const goalFunding = allocateSavings(state, month).allocations.reduce((sum, allocation) => {
+    const alreadyGiven = sumAmounts(
+      allocation.goal.contributions.filter((c) => monthOf(c.date) === month),
+    )
+    return sum + Math.max(0, allocation.monthly - alreadyGiven)
   }, 0)
 
   const today = todayKey()

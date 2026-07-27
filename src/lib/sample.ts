@@ -80,6 +80,8 @@ export function sampleState(): AppState {
       deadline: `${addMonths(month, 7)}-01`,
       createdAt: created.toISOString(),
       note: '3 months of expenses',
+      // A real commitment: the date matters more than this month's spending money.
+      pace: 'strict',
       contributions: [0, 1, 2, 3, 4].map((i) => ({
         id: uid(),
         amount: 600,
@@ -93,6 +95,8 @@ export function sampleState(): AppState {
       target: 3200,
       deadline: `${addMonths(month, 10)}-15`,
       createdAt: created.toISOString(),
+      // Nice to have: fund it from what's spare and let the date move.
+      pace: 'balanced',
       contributions: [
         { id: uid(), amount: 250, date: `${addMonths(month, -3)}-12` },
         { id: uid(), amount: 250, date: `${addMonths(month, -1)}-12` },
@@ -103,6 +107,7 @@ export function sampleState(): AppState {
       name: 'New laptop',
       target: 1800,
       createdAt: created.toISOString(),
+      pace: 'balanced',
       contributions: [{ id: uid(), amount: 1800, date: `${addMonths(month, -2)}-20`, note: 'Bonus' }],
     },
   ]

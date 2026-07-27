@@ -5,7 +5,7 @@ export const STATE_VERSION = 1
 
 export const DEFAULT_STATE: AppState = {
   version: STATE_VERSION,
-  settings: { currency: 'USD', locale: 'en-US' },
+  settings: { currency: 'USD', locale: 'en-US', lifestyle: 'balanced' },
   categories: [
     { id: 'housing', name: 'Housing', color: '#6366f1', icon: '🏠' },
     { id: 'groceries', name: 'Groceries', color: '#22c55e', icon: '🛒' },
