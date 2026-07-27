@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../state/store'
+import { CONFIDENT, suggestCategory } from '../lib/intelligence/categorize'
 import type { Expense } from '../types'
 import { expensesForMonth, spendByCategory, sumAmounts, categoryById } from '../lib/selectors'
 import { formatMoney, parseAmount } from '../lib/money'
@@ -201,6 +202,22 @@ function ExpenseForm({
   const [date, setDate] = useState(expense?.date ?? defaultDate(month))
   const [note, setNote] = useState(expense?.note ?? '')
   const [error, setError] = useState('')
+  // Once you pick a category yourself, stop second-guessing you.
+  const [chosenManually, setChosenManually] = useState(false)
+
+  const suggestion = useMemo(
+    () => suggestCategory(note, state.expenses, state.categories),
+    [note, state.expenses, state.categories],
+  )
+
+  // A confident guess pre-selects; anything weaker is only offered.
+  useEffect(() => {
+    if (chosenManually || expense) return
+    if (suggestion && suggestion.confidence >= CONFIDENT) setCategoryId(suggestion.categoryId)
+  }, [suggestion, chosenManually, expense])
+
+  const suggested = suggestion ? categoryById(state.categories, suggestion.categoryId) : undefined
+  const showSuggestion = suggested !== undefined && suggested.id !== categoryId
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -231,8 +248,17 @@ function ExpenseForm({
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
         </div>
-        <Field label="Category">
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+        <Field label="Note (optional)">
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Coffee with Sam" />
+        </Field>
+        <Field label="Category" error={error}>
+          <select
+            value={categoryId}
+            onChange={(e) => {
+              setCategoryId(e.target.value)
+              setChosenManually(true)
+            }}
+          >
             {state.categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.icon} {c.name}
@@ -240,9 +266,23 @@ function ExpenseForm({
             ))}
           </select>
         </Field>
-        <Field label="Note (optional)" error={error}>
-          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Coffee with Sam" />
-        </Field>
+        {showSuggestion && (
+          <div className="suggestion">
+            <span>Looks like</span>
+            <button
+              type="button"
+              onClick={() => {
+                setCategoryId(suggested.id)
+                setChosenManually(true)
+              }}
+            >
+              {suggested.icon} {suggested.name}
+            </button>
+            <span className="faint">
+              {suggestion!.reason === 'history' ? 'based on your past expenses' : 'based on the wording'}
+            </span>
+          </div>
+        )}
         <div className="form-actions">
           <button type="button" className="btn" onClick={onClose}>
             Cancel

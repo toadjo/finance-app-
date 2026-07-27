@@ -13,6 +13,8 @@ import { formatMoney, formatPercent } from '../lib/money'
 import { daysInMonth, formatDay, formatMonth, todayKey, type MonthKey } from '../lib/date'
 import { Card, CardHeader, EmptyState, ProgressBar, Stat } from './ui'
 import { DonutChart, TrendChart } from './charts'
+import { buildAlerts, projectedSpend, safeToSpend } from '../lib/intelligence/insights'
+import { dueDescription, upcomingBills } from '../lib/intelligence/recurring'
 import type { View } from '../App'
 
 export function Dashboard({ month, onNavigate }: { month: MonthKey; onNavigate: (view: View) => void }) {
@@ -29,7 +31,12 @@ export function Dashboard({ month, onNavigate }: { month: MonthKey; onNavigate: 
   const isCurrentMonth = todayKey().startsWith(month)
   const dayOfMonth = isCurrentMonth ? Number(todayKey().slice(8)) : daysInMonth(month)
   const burnRate = dayOfMonth > 0 ? summary.spent / dayOfMonth : 0
-  const projected = burnRate * daysInMonth(month)
+  const projected = projectedSpend(state, month)
+
+  const money = useMemo(() => (n: number) => formatMoney(n, settings), [settings])
+  const safe = useMemo(() => safeToSpend(state, month), [state, month])
+  const alerts = useMemo(() => buildAlerts(state, month, money), [state, month, money])
+  const bills = useMemo(() => upcomingBills(state.expenses, month), [state.expenses, month])
 
   const previous = trend[trend.length - 2]
   const spendDelta = previous && previous.spent > 0 ? (summary.spent - previous.spent) / previous.spent : undefined
@@ -57,16 +64,47 @@ export function Dashboard({ month, onNavigate }: { month: MonthKey; onNavigate: 
           tone={summary.net >= 0 ? 'positive' : 'negative'}
           note={summary.income > 0 ? `${formatPercent(summary.savingsRate, settings.locale)} savings rate` : undefined}
         />
-        <Stat
-          label={isCurrentMonth ? 'Projected spend' : 'Daily average'}
-          value={formatMoney(isCurrentMonth ? projected : burnRate, settings)}
-          note={
-            isCurrentMonth
-              ? `At ${formatMoney(burnRate, settings)} a day`
-              : `Over ${daysInMonth(month)} days`
-          }
-        />
+        {isCurrentMonth ? (
+          <Stat
+            label="Safe to spend"
+            value={formatMoney(Math.max(0, safe.perDay), settings)}
+            tone={safe.total < 0 ? 'negative' : 'positive'}
+            note={
+              safe.total < 0
+                ? `${formatMoney(Math.abs(safe.total), settings)} short once bills and goals are covered`
+                : `a day for ${safe.daysLeft} days · ${formatMoney(safe.total, settings)} left after bills and goals`
+            }
+          />
+        ) : (
+          <Stat
+            label="Daily average"
+            value={formatMoney(burnRate, settings)}
+            note={`Over ${daysInMonth(month)} days`}
+          />
+        )}
       </div>
+
+      {alerts.length > 0 && (
+        <Card>
+          <CardHeader
+            title="Worth knowing"
+            hint={isCurrentMonth ? `Projected to finish the month at ${formatMoney(projected, settings)}` : undefined}
+          />
+          <div className="stack" style={{ gap: 10 }}>
+            {alerts.map((alert) => (
+              <div className="list-row" key={alert.id} style={{ alignItems: 'flex-start' }}>
+                <span className={`alert-mark ${alert.level}`} aria-hidden="true">
+                  {alert.level === 'danger' ? '!' : alert.level === 'warn' ? '▲' : 'i'}
+                </span>
+                <span className="grow">
+                  <div style={{ fontWeight: 550 }}>{alert.title}</div>
+                  <div className="faint">{alert.detail}</div>
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="grid two">
         <Card>
@@ -156,6 +194,49 @@ export function Dashboard({ month, onNavigate }: { month: MonthKey; onNavigate: 
           )}
         </Card>
 
+        <Card>
+          <CardHeader
+            title="Upcoming bills"
+            hint={
+              bills.length > 0
+                ? `${formatMoney(safe.committed, settings)} still to leave your account`
+                : 'Spotted automatically from repeating charges'
+            }
+          />
+          {bills.length === 0 ? (
+            <EmptyState
+              emoji="🔁"
+              title="No bills detected for the rest of this month"
+              hint="Recurring charges are recognised after they repeat three times."
+            />
+          ) : (
+            <div>
+              {bills.map((bill) => {
+                const category = categoryById(state.categories, bill.categoryId)
+                return (
+                  <div className="list-row" key={bill.key}>
+                    <span className="dot" style={{ background: category?.color }} />
+                    <span className="grow truncate">
+                      {bill.label}
+                      <div className="faint">
+                        {formatDay(bill.nextDue, settings.locale)} · {dueDescription(bill)}
+                        {bill.priceIncrease
+                          ? ` · up ${Math.round(bill.priceIncrease.ratio * 100)}% from ${formatMoney(bill.priceIncrease.from, settings)}`
+                          : ''}
+                      </div>
+                    </span>
+                    <span className="numeric" style={{ fontWeight: 550 }}>
+                      {formatMoney(bill.typicalAmount, settings)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <div className="grid two">
         <Card>
           <CardHeader
             title="Recent expenses"

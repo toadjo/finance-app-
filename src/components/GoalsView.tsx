@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../state/store'
 import type { Goal } from '../types'
 import { goalProgress, requiredMonthlySavings, summariseMonth, type GoalProgress, type GoalStatus } from '../lib/selectors'
+import { coachGoal, coachPortfolio } from '../lib/intelligence/coach'
 import { formatMoney, formatPercent, parseAmount } from '../lib/money'
 import { formatDay, todayKey, type MonthKey } from '../lib/date'
 import { Card, CardHeader, EmptyState, Field, Modal, ProgressBar, Stat } from './ui'
@@ -22,6 +23,10 @@ export function GoalsView({ month }: { month: MonthKey }) {
 
   const progress = useMemo(() => state.goals.map(goalProgress), [state.goals])
   const summary = useMemo(() => summariseMonth(state, month), [state, month])
+  const portfolio = useMemo(
+    () => coachPortfolio(state, month, (n) => formatMoney(n, state.settings)),
+    [state, month],
+  )
   const needed = requiredMonthlySavings(state.goals)
   const totalTarget = state.goals.reduce((s, g) => s + g.target, 0)
   const totalSaved = progress.reduce((s, p) => s + p.saved, 0)
@@ -57,6 +62,33 @@ export function GoalsView({ month }: { month: MonthKey }) {
           note={`${progress.filter((p) => p.status === 'behind' || p.status === 'overdue').length} need attention`}
         />
       </div>
+
+      {portfolio.priority.length > 0 && (
+        <Card>
+          <CardHeader title="Can you actually afford these?" />
+          <div className="list-row" style={{ alignItems: 'flex-start', borderBottom: 0, paddingTop: 0 }}>
+            <span className={`alert-mark ${portfolio.overcommitted ? 'warn' : 'info'}`} aria-hidden="true">
+              {portfolio.overcommitted ? '▲' : 'i'}
+            </span>
+            <span className="grow">{portfolio.advice}</span>
+          </div>
+          {portfolio.overcommitted && (
+            <div className="stack" style={{ gap: 8, marginTop: 4 }}>
+              {portfolio.priority.map(({ goal, requiredPerMonth, fundable }) => (
+                <div className="legend-row" key={goal.id} style={{ justifyContent: 'space-between' }}>
+                  <span className="truncate">
+                    {fundable ? '✓' : '—'} {goal.name}
+                  </span>
+                  <span className="numeric faint">
+                    {formatMoney(requiredPerMonth, state.settings)}/mo
+                    {fundable ? '' : ' · not covered'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card>
         <CardHeader
@@ -116,6 +148,7 @@ function GoalCard({
   const { state, dispatch } = useStore()
   const { goal } = p
   const color = p.status === 'complete' ? 'var(--accent)' : p.status === 'behind' || p.status === 'overdue' ? 'var(--warning)' : 'var(--positive)'
+  const coaching = useMemo(() => coachGoal(goal, (n) => formatMoney(n, state.settings)), [goal, state.settings])
 
   return (
     <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
@@ -147,6 +180,13 @@ function GoalCard({
       <div style={{ margin: '12px 0 8px' }}>
         <ProgressBar value={p.progress} color={color} />
       </div>
+
+      {coaching.verdict !== 'complete' && (
+        <div className={`coach-line ${coaching.verdict === 'late' || coaching.verdict === 'stalled' ? 'late' : ''}`}>
+          <span aria-hidden="true">{coaching.verdict === 'late' || coaching.verdict === 'stalled' ? '⚠' : '✓'}</span>
+          <span>{coaching.advice}</span>
+        </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }} className="faint">
         <span className="numeric">

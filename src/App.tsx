@@ -5,7 +5,10 @@ import { ExpensesView } from './components/ExpensesView'
 import { IncomeView } from './components/IncomeView'
 import { GoalsView } from './components/GoalsView'
 import { SettingsView } from './components/SettingsView'
+import { Modal } from './components/ui'
+import type { AppState } from './types'
 import { addMonths, currentMonth, formatMonth } from './lib/date'
+import { desktop, isDesktop } from './lib/desktop'
 
 export type View = 'dashboard' | 'expenses' | 'income' | 'goals' | 'settings'
 
@@ -26,7 +29,8 @@ export default function App() {
 }
 
 function Shell() {
-  const { state } = useStore()
+  const { state, dispatch } = useStore()
+  const [recovery, setRecovery] = useState<AppState | null>(null)
   const [view, setView] = useState<View>('dashboard')
   const [month, setMonth] = useState(currentMonth())
   const [theme, setTheme] = useState<'dark' | 'light'>(
@@ -37,6 +41,39 @@ function Shell() {
     document.documentElement.classList.toggle('light', theme === 'light')
     localStorage.setItem('ledger.theme', theme)
   }, [theme])
+
+  // Native menu commands. Export/import/backup live in Settings, so those jump there.
+  useEffect(() => {
+    const bridge = desktop()
+    if (!bridge) return
+    return bridge.onMenu((command) => {
+      if (command.startsWith('view:')) setView(command.slice(5) as View)
+      else if (command === 'month:prev') setMonth((m) => addMonths(m, -1))
+      else if (command === 'month:next') setMonth((m) => (m >= currentMonth() ? m : addMonths(m, 1)))
+      else if (command === 'month:today') setMonth(currentMonth())
+      else if (command === 'theme') setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+      else setView('settings')
+    })
+  }, [])
+
+  // If the browser store was cleared but the app has data on disk, offer it back
+  // rather than silently starting from nothing.
+  useEffect(() => {
+    const bridge = desktop()
+    if (!bridge) return
+    if (state.expenses.length > 0 || state.incomes.length > 0 || state.goals.length > 0) return
+    void bridge.readSnapshot().then((contents) => {
+      if (!contents) return
+      try {
+        const parsed = JSON.parse(contents) as AppState
+        if (parsed.expenses?.length || parsed.incomes?.length || parsed.goals?.length) setRecovery(parsed)
+      } catch {
+        /* an unreadable snapshot is not worth interrupting startup over */
+      }
+    })
+    // Deliberately mount-only: this is a startup recovery prompt, not a live watcher.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const active = NAV.find((n) => n.id === view)!
   const showMonthPicker = view !== 'settings'
@@ -66,7 +103,7 @@ function Shell() {
           <span className="faint">
             {state.expenses.length} expenses · {state.goals.length} goals
             <br />
-            Saved in this browser
+            {isDesktop() ? 'Saved on this machine · offline' : 'Saved in this browser'}
           </span>
         </div>
       </nav>
@@ -109,6 +146,32 @@ function Shell() {
         {view === 'goals' && <GoalsView month={month} />}
         {view === 'settings' && <SettingsView />}
       </main>
+
+      {recovery && (
+        <Modal title="Restore your data?" onClose={() => setRecovery(null)}>
+          <div className="stack">
+            <p style={{ margin: 0 }}>
+              This app has no data, but there's a saved file on this machine with{' '}
+              <strong>{recovery.expenses.length} expenses</strong>, {recovery.incomes.length} income sources and{' '}
+              {recovery.goals.length} goals. Restore it?
+            </p>
+            <div className="form-actions">
+              <button className="btn" onClick={() => setRecovery(null)}>
+                Start fresh
+              </button>
+              <button
+                className="btn primary"
+                onClick={() => {
+                  dispatch({ type: 'state/replace', state: recovery })
+                  setRecovery(null)
+                }}
+              >
+                Restore
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

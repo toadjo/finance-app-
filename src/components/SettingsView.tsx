@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '../state/store'
 import type { AppState, Category } from '../types'
+import { desktop, type BackupInfo } from '../lib/desktop'
 import { formatMoney, parseAmount } from '../lib/money'
 import { sampleState } from '../lib/sample'
 import { Card, CardHeader, Field, Modal } from './ui'
@@ -15,8 +16,18 @@ export function SettingsView() {
   const [message, setMessage] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
 
-  function exportData() {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' })
+  const bridge = desktop()
+
+  const serialised = () => JSON.stringify(state, null, 2)
+
+  async function exportData() {
+    if (bridge) {
+      const result = await bridge.exportData(serialised())
+      setMessage(result.canceled ? '' : `Exported to ${result.filePath}`)
+      return
+    }
+    // Browser fallback: hand it to the download manager.
+    const blob = new Blob([serialised()], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -25,15 +36,27 @@ export function SettingsView() {
     URL.revokeObjectURL(url)
   }
 
-  async function importData(file: File) {
+  function applyImported(contents: string, source: string) {
     try {
-      const parsed = JSON.parse(await file.text()) as AppState
+      const parsed = JSON.parse(contents) as AppState
       if (!Array.isArray(parsed.expenses) || !Array.isArray(parsed.goals)) throw new Error('unrecognised file')
       dispatch({ type: 'state/replace', state: parsed })
-      setMessage('Data imported.')
+      // Snapshot immediately so the previous data is backed up before it's replaced.
+      void bridge?.save(contents, 'import')
+      setMessage(`Data imported from ${source}.`)
     } catch {
       setMessage('That file could not be read as a Ledger export.')
     }
+  }
+
+  async function importData(file?: File) {
+    if (!file && bridge) {
+      const result = await bridge.importData()
+      if (result.canceled || !result.contents) return
+      applyImported(result.contents, result.filePath ?? 'file')
+      return
+    }
+    if (file) applyImported(await file.text(), file.name)
   }
 
   return (
@@ -73,12 +96,15 @@ export function SettingsView() {
         </Card>
 
         <Card>
-          <CardHeader title="Your data" hint="Everything lives in this browser only" />
+          <CardHeader
+            title="Your data"
+            hint={bridge ? 'Saved on this machine, never sent anywhere' : 'Everything lives in this browser only'}
+          />
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn" onClick={exportData}>
+            <button className="btn" onClick={() => void exportData()}>
               Export JSON
             </button>
-            <button className="btn" onClick={() => fileInput.current?.click()}>
+            <button className="btn" onClick={() => (bridge ? void importData() : fileInput.current?.click())}>
               Import JSON
             </button>
             <button
@@ -114,6 +140,7 @@ export function SettingsView() {
               if (file) void importData(file)
               e.target.value = ''
             }}
+            // Only used in a plain browser; the desktop build opens a native dialog.
           />
           {message && (
             <div className="faint" style={{ marginTop: 10 }}>
@@ -122,6 +149,8 @@ export function SettingsView() {
           )}
         </Card>
       </div>
+
+      {bridge && <BackupsPanel onMessage={setMessage} />}
 
       <Card>
         <CardHeader
@@ -179,6 +208,85 @@ export function SettingsView() {
 
       {editing && <CategoryForm category={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} />}
     </div>
+  )
+}
+
+/**
+ * Desktop only: the app keeps rolling JSON backups on disk, so a cleared browser
+ * store or a bad import is always recoverable.
+ */
+function BackupsPanel({ onMessage }: { onMessage: (text: string) => void }) {
+  const { state, dispatch } = useStore()
+  const bridge = desktop()!
+  const [backups, setBackups] = useState<BackupInfo[]>([])
+  const [paths, setPaths] = useState<{ dataDir: string; backupDir: string } | null>(null)
+
+  const refresh = useCallback(async () => {
+    setBackups(await bridge.listBackups())
+    setPaths(await bridge.dataDir())
+  }, [bridge])
+
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  async function restore(name: string) {
+    if (!confirm(`Replace your current data with the backup from ${name}?`)) return
+    try {
+      const parsed = JSON.parse(await bridge.readBackup(name)) as AppState
+      dispatch({ type: 'state/replace', state: parsed })
+      onMessage(`Restored from ${name}.`)
+      await refresh()
+    } catch {
+      onMessage('That backup could not be read.')
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        title="Backups"
+        hint={paths?.backupDir}
+        action={
+          <button
+            className="btn"
+            onClick={async () => {
+              const name = await bridge.backupNow(JSON.stringify(state, null, 2))
+              onMessage(name ? `Backed up as ${name}.` : 'Backup failed.')
+              await refresh()
+            }}
+          >
+            Back up now
+          </button>
+        }
+      />
+      {backups.length === 0 ? (
+        <div className="faint">No backups yet — one is written automatically the first time you change something.</div>
+      ) : (
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Taken</th>
+              <th className="right">Size</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {backups.map((backup) => (
+              <tr key={backup.name}>
+                <td className="muted">{new Date(backup.modified).toLocaleString(state.settings.locale)}</td>
+                <td className="right numeric muted">{(backup.size / 1024).toFixed(1)} kB</td>
+                <td className="actions">
+                  <button className="btn ghost small" onClick={() => void restore(backup.name)}>
+                    Restore
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Card>
   )
 }
 

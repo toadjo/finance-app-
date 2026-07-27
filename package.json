@@ -1,13 +1,23 @@
 {
-  "name": "finance-app",
+  "name": "ledger",
+  "productName": "Ledger",
+  "description": "Offline personal finance tracker: expenses, income and savings goals",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "homepage": "https://github.com/toadjo/finance-app-",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
+    "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "start": "npm run build && electron .",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dist": "npm run build && electron-builder --linux AppImage deb",
+    "dist:dir": "npm run build && electron-builder --linux dir"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -17,7 +27,46 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.2.4",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vitest": "^2.1.9",
+    "wait-on": "^8.0.5"
+  },
+  "build": {
+    "appId": "app.ledger.finance",
+    "productName": "Ledger",
+    "publish": null,
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "linux": {
+      "maintainer": "toadjo <toadjo@users.noreply.github.com>",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office;Finance",
+      "icon": "electron/icon.png",
+      "synopsis": "Offline personal finance tracker",
+      "description": "Track expenses, income and savings goals. Works entirely offline; your data never leaves the machine."
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0"
+      ]
+    }
   }
 }

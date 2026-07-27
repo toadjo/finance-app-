@@ -524,6 +524,77 @@ th.right {
   font-size: 12.5px;
 }
 
+.alert-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.alert-mark.danger {
+  background: rgba(244, 100, 95, 0.16);
+  color: var(--negative);
+}
+
+.alert-mark.warn {
+  background: rgba(234, 179, 8, 0.16);
+  color: var(--warning);
+}
+
+.alert-mark.info {
+  background: var(--accent-soft);
+  color: #a5b4fc;
+}
+
+:root.light .alert-mark.info {
+  color: var(--accent);
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.suggestion button {
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--text);
+}
+
+.suggestion button:hover {
+  background: var(--surface-hover);
+  border-style: solid;
+}
+
+.coach-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-hover);
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.coach-line.late {
+  background: rgba(234, 179, 8, 0.1);
+}
+
 .progress {
   height: 7px;
   border-radius: 999px;

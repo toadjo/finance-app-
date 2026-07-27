@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer } from 'react
 import type { ReactNode } from 'react'
 import type { AppState, Category, Contribution, Expense, Goal, IncomeSource, Settings } from '../types'
 import { DEFAULT_STATE, loadState, saveState } from '../lib/storage'
+import { desktop } from '../lib/desktop'
 import { uid } from '../lib/id'
 
 export type Action =
@@ -121,6 +122,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     saveState(state)
+  }, [state])
+
+  // On the desktop, mirror every change to a real file so a cleared browser store
+  // (or a moved machine) never means lost history. Debounced — typing an amount
+  // shouldn't hit the disk on every keystroke.
+  useEffect(() => {
+    const bridge = desktop()
+    if (!bridge) return
+    const timer = setTimeout(() => {
+      void bridge.save(JSON.stringify(state, null, 2), 'autosave')
+    }, 800)
+    return () => clearTimeout(timer)
   }, [state])
 
   const value = useMemo(() => ({ state, dispatch }), [state])
