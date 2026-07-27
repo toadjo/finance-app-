@@ -1,9 +1,9 @@
 {
-  "name": "ledger",
+  "name": "ledger-desktop",
   "productName": "Ledger",
   "description": "Offline personal finance tracker: expenses, income and savings goals",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.4.1",
   "homepage": "https://github.com/toadjo/finance-app-",
   "type": "module",
   "main": "electron/main.cjs",
@@ -63,7 +63,8 @@
       "category": "Office;Finance",
       "icon": "electron/icon.png",
       "synopsis": "Offline personal finance tracker",
-      "description": "Track expenses, income and savings goals. Works entirely offline; your data never leaves the machine."
+      "description": "Track expenses, income and savings goals. Works entirely offline; your data never leaves the machine.",
+      "executableName": "ledger-desktop"
     },
     "deb": {
       "depends": [

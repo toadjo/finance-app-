@@ -59,7 +59,7 @@ jobs:
 
       - name: Checksums
         working-directory: release
-        run: sha256sum Ledger-*.AppImage ledger_*.deb ledger-*.rpm > SHA256SUMS.txt
+        run: sha256sum ./*.AppImage ./*.deb ./*.rpm > SHA256SUMS.txt
 
       - name: Publish release
         env:
@@ -101,12 +101,12 @@ jobs:
             echo
             echo '**Debian / Ubuntu / Mint:**'
             echo '```bash'
-            echo "sudo apt install ./ledger_*_amd64.deb"
+            echo "sudo apt install ./ledger-desktop_*_amd64.deb"
             echo '```'
             echo
             echo '**Fedora / RHEL / openSUSE:**'
             echo '```bash'
-            echo "sudo dnf install ./ledger-*.x86_64.rpm"
+            echo "sudo dnf install ./ledger-desktop-*.x86_64.rpm"
             echo '```'
             echo
             echo '### Verify'
@@ -123,7 +123,7 @@ jobs:
             # Only an explicit request refreshes an existing release; routine branch
             # pushes must not re-upload ~180 MB every time.
             if [ "$EXPLICIT" = "true" ]; then
-              gh release upload "$TAG" Ledger-*.AppImage ledger_*.deb ledger-*.rpm SHA256SUMS.txt latest-linux.yml --clobber
+              gh release upload "$TAG" ./*.AppImage ./*.deb ./*.rpm SHA256SUMS.txt latest-linux.yml --clobber
               # Refresh the body too, so its checksums match the assets just uploaded.
               gh release edit "$TAG" --notes-file notes.md
             else
@@ -132,7 +132,7 @@ jobs:
           else
             # Creates the tag at this commit as well, so no tag push is needed.
             gh release create "$TAG" \
-              Ledger-*.AppImage ledger_*.deb ledger-*.rpm SHA256SUMS.txt latest-linux.yml \
+              ./*.AppImage ./*.deb ./*.rpm SHA256SUMS.txt latest-linux.yml \
               --target "${{ github.sha }}" \
               --title "Ledger $TAG" \
               --notes-file notes.md
@@ -143,9 +143,9 @@ jobs:
         with:
           name: ledger-linux
           path: |
-            release/Ledger-*.AppImage
-            release/ledger_*.deb
-            release/ledger-*.rpm
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
             release/latest-linux.yml
             release/SHA256SUMS.txt
           retention-days: 30

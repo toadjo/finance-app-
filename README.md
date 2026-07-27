@@ -28,16 +28,18 @@ If your distro ships without FUSE, run it as `./Ledger-*.AppImage --appimage-ext
 **Debian / Ubuntu / Mint:**
 
 ```bash
-sudo apt install ./release/ledger_*_amd64.deb
+sudo apt install ./release/ledger-desktop_*_amd64.deb
 ```
 
 **Fedora / RHEL / openSUSE:**
 
 ```bash
-sudo dnf install ./release/ledger-*.x86_64.rpm
+sudo dnf install ./release/ledger-desktop-*.x86_64.rpm
 ```
 
-Either package registers Ledger in your application menu under Office/Finance. Building the RPM needs
+Either package registers Ledger in your application menu under Office/Finance. The package is called
+`ledger-desktop`, not `ledger` — that name already belongs to the double-entry accounting CLI in both
+Fedora and Debian, and claiming it would collide with a real distro package. Building the RPM needs
 `rpmbuild` on the build machine (`sudo dnf install rpm-build`, or `sudo apt install rpm` on Debian).
 
 ## Develop
