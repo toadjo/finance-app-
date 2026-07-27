@@ -3,7 +3,7 @@
   "productName": "Ledger",
   "description": "Offline personal finance tracker: expenses, income and savings goals",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "homepage": "https://github.com/toadjo/finance-app-",
   "type": "module",
   "main": "electron/main.cjs",
@@ -20,6 +20,7 @@
     "dist:dir": "npm run build && electron-builder --linux dir"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -38,7 +39,13 @@
   "build": {
     "appId": "app.ledger.finance",
     "productName": "Ledger",
-    "publish": null,
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "toadjo",
+        "repo": "finance-app-"
+      }
+    ],
     "files": [
       "dist/**/*",
       "electron/**/*"

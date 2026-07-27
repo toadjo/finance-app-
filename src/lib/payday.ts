@@ -1,14 +1,6 @@
 import type { IncomeSource } from '../types'
-import {
-  addDays,
-  addMonthsToDay,
-  daysUntil,
-  monthOf,
-  monthsBetween,
-  todayKey,
-  type DayKey,
-  type MonthKey,
-} from './date'
+import { daysUntil, monthOf, todayKey, type DayKey, type MonthKey } from './date'
+import { occurrencesIn } from './schedule'
 import { isIncomeActive } from './selectors'
 import { toMonthly } from './money'
 
@@ -34,36 +26,7 @@ const SEARCH_HORIZON_MONTHS = 24
 export function payDatesIn(income: IncomeSource, month: MonthKey): DayKey[] {
   if (!income.payAnchor) return []
   if (!isIncomeActive(income, month)) return []
-
-  const anchor = income.payAnchor
-  const dates: DayKey[] = []
-
-  if (income.frequency === 'weekly' || income.frequency === 'biweekly') {
-    const step = income.frequency === 'weekly' ? 7 : 14
-    // Jump close to the target month, then walk day-steps across it.
-    const monthsAway = monthsBetween(monthOf(anchor), month)
-    if (Math.abs(monthsAway) > SEARCH_HORIZON_MONTHS * 12) return []
-
-    const approxDays = Math.round(monthsAway * 30.4)
-    let cursor = addDays(anchor, Math.floor(approxDays / step) * step)
-    // Rewind to before the month, then step forward through it.
-    while (monthOf(cursor) >= month) cursor = addDays(cursor, -step)
-    cursor = addDays(cursor, step)
-    while (monthOf(cursor) === month) {
-      dates.push(cursor)
-      cursor = addDays(cursor, step)
-    }
-    return dates
-  }
-
-  const stride = { monthly: 1, quarterly: 3, yearly: 12 }[income.frequency]
-  const offset = monthsBetween(monthOf(anchor), month)
-  // Quarterly and yearly only pay in months lining up with the anchor's.
-  if (offset % stride !== 0) return []
-
-  const candidate = addMonthsToDay(anchor, offset)
-  if (monthOf(candidate) === month) dates.push(candidate)
-  return dates
+  return occurrencesIn(income.payAnchor, income.frequency, month)
 }
 
 /** Every payday from every active source in `month`, earliest first. */

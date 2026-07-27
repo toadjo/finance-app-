@@ -1,8 +1,9 @@
 import type { AppState } from '../../types'
 import { monthOf, todayKey, type MonthKey } from '../date'
 import { expensesForMonth, goalProgress, monthlyIncome, sumAmounts } from '../selectors'
-import { projectedBillsIn, projectedBillTotal } from './recurring'
+import { projectedBillsIn } from './recurring'
 import { incomeArrivingIn, paydaysIn } from '../payday'
+import { scheduledIn } from '../recurringRules'
 
 /**
  * Looking forward rather than back: what a month is shaped like before it happens,
@@ -26,7 +27,9 @@ export interface MonthPlan {
   paydayCount: number
   /** Expenses you have deliberately entered against this month. */
   planned: number
-  /** Recurring bills expected but not yet entered. */
+  /** Declared recurring rules due this month that haven't posted yet. */
+  scheduled: number
+  /** Bills inferred from spending patterns, beyond what your rules already cover. */
   expectedBills: number
   /** What your dated goals need that month. */
   goalFunding: number
@@ -42,7 +45,8 @@ export function planMonth(state: AppState, month: MonthKey): MonthPlan {
   const arriving = incomeArrivingIn(state.incomes, month)
 
   const planned = sumAmounts(expensesForMonth(state.expenses, month))
-  const expectedBills = projectedBillTotal(state.expenses, month)
+  const scheduled = pendingScheduled(state, month).reduce((sum, item) => sum + item.rule.amount, 0)
+  const expectedBills = uncoveredBills(state, month).reduce((sum, p) => sum + p.bill.typicalAmount, 0)
 
   const goalFunding = state.goals.reduce((sum, goal) => {
     const progress = goalProgress(goal)
@@ -52,7 +56,7 @@ export function planMonth(state: AppState, month: MonthKey): MonthPlan {
     return sum + Math.max(0, progress.requiredPerMonth - alreadyGiven)
   }, 0)
 
-  const leftOver = income - planned - expectedBills - goalFunding
+  const leftOver = income - planned - scheduled - expectedBills - goalFunding
 
   return {
     month,
@@ -60,11 +64,36 @@ export function planMonth(state: AppState, month: MonthKey): MonthPlan {
     arriving,
     paydayCount: paydays.length,
     planned,
+    scheduled,
     expectedBills,
     goalFunding,
     leftOver,
     overCommitted: leftOver < 0,
   }
+}
+
+/**
+ * Recurring rules due in `month` that haven't already been written to the ledger.
+ * Auto-posting fills past months in for real, so those must not be counted twice.
+ */
+function pendingScheduled(state: AppState, month: MonthKey) {
+  const entered = new Set(
+    expensesForMonth(state.expenses, month).map((e) => (e.note ?? '').trim().toLowerCase()),
+  )
+  return scheduledIn(state.recurring, month, 'expense').filter(
+    (item) => !entered.has(item.rule.label.trim().toLowerCase()),
+  )
+}
+
+/**
+ * Inferred bills, minus anything a declared rule already accounts for — a rule you
+ * wrote yourself is authoritative, and the guess would only duplicate it.
+ */
+function uncoveredBills(state: AppState, month: MonthKey) {
+  const declared = new Set(state.recurring.map((r) => r.label.trim().toLowerCase()))
+  return projectedBillsIn(state.expenses, month).filter(
+    (p) => !declared.has(p.bill.label.trim().toLowerCase()),
+  )
 }
 
 /** A planned month's bills and entered expenses, merged into one dated list. */
@@ -78,7 +107,16 @@ export function plannedItems(state: AppState, month: MonthKey) {
     id: expense.id,
   }))
 
-  const expected = projectedBillsIn(state.expenses, month).map(({ bill, date }) => ({
+  const scheduled = pendingScheduled(state, month).map(({ rule, date }) => ({
+    kind: 'scheduled' as const,
+    date,
+    label: rule.label,
+    categoryId: rule.categoryId ?? 'other',
+    amount: rule.amount,
+    id: `${rule.id}-${date}`,
+  }))
+
+  const expected = uncoveredBills(state, month).map(({ bill, date }) => ({
     kind: 'expected' as const,
     date,
     label: bill.label,
@@ -87,5 +125,5 @@ export function plannedItems(state: AppState, month: MonthKey) {
     id: `${bill.key}-${date}`,
   }))
 
-  return [...entered, ...expected].sort((a, b) => a.date.localeCompare(b.date))
+  return [...entered, ...scheduled, ...expected].sort((a, b) => a.date.localeCompare(b.date))
 }

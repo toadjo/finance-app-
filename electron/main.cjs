@@ -5,6 +5,7 @@ const path = require('node:path')
 const fs = require('node:fs')
 const fsp = require('node:fs/promises')
 const { pathToFileURL } = require('node:url')
+const updates = require('./updater.cjs')
 
 const DEV_SERVER = process.env.VITE_DEV_SERVER_URL
 const RENDERER_DIR = path.join(__dirname, '..', 'dist')
@@ -52,9 +53,17 @@ function isLocalRequest(url) {
   )
 }
 
+/**
+ * The single exception to "no network": release endpoints for this repository, and
+ * only while you have updates switched on. Everything else is still refused.
+ */
+function isAllowedRequest(url) {
+  return isLocalRequest(url) || updates.isUpdateRequest(url)
+}
+
 function lockDownSession(target) {
   target.webRequest.onBeforeRequest((details, callback) => {
-    if (isLocalRequest(details.url)) return callback({ cancel: false })
+    if (isAllowedRequest(details.url)) return callback({ cancel: false })
     blockedRequests.push({ url: details.url, at: new Date().toISOString() })
     console.warn('[offline] blocked outbound request:', details.url)
     callback({ cancel: true })
@@ -243,6 +252,14 @@ function buildMenu() {
       label: 'Help',
       submenu: [
         {
+          label: 'Check for updates…',
+          click: async () => {
+            const status = await updates.check({ manual: true })
+            if (status.state === 'disabled') send('menu', 'view:settings')
+          },
+        },
+        { type: 'separator' },
+        {
           label: 'About Ledger',
           click: () =>
             dialog.showMessageBox(mainWindow, {
@@ -255,8 +272,11 @@ function buildMenu() {
                 `Your data: ${dataDir}`,
                 `Backups: ${backupDir}`,
                 '',
+                updates.updatesEnabled()
+                  ? 'Updates: on — release checks against GitHub are allowed.'
+                  : 'Updates: off — this app makes no network requests at all.',
                 blockedRequests.length === 0
-                  ? 'No network requests have been attempted this session.'
+                  ? 'No outbound requests have been blocked this session.'
                   : `${blockedRequests.length} outbound request(s) blocked this session.`,
               ].join('\n'),
               buttons: ['OK'],
@@ -352,6 +372,7 @@ if (!app.requestSingleInstanceLock()) {
     })
 
     registerIpc()
+    updates.register({ onStatus: (status) => send('update-status', status) })
     buildMenu()
     createWindow()
 

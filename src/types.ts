@@ -59,6 +59,38 @@ export interface Goal {
   contributions: Contribution[]
 }
 
+/**
+ * A thing that repeats: rent, a subscription, a standing transfer into a goal.
+ *
+ * Unlike the charges the app *infers* from your history, these are declared, so they
+ * are exact — and they can post themselves into the ledger as they come due.
+ */
+export interface RecurringRule {
+  id: string
+  kind: 'expense' | 'contribution'
+  label: string
+  amount: number
+  frequency: Frequency
+  /** Any one date it happens, as 'YYYY-MM-DD'; the cadence derives the rest. */
+  anchor: string
+  /** Required for kind 'expense'. */
+  categoryId?: string
+  /** Required for kind 'contribution'. */
+  goalId?: string
+  /** Inclusive 'YYYY-MM-DD'. Omitted means "runs indefinitely". */
+  endDate?: string
+  /** Paused rules keep their history but stop posting and stop appearing in plans. */
+  active: boolean
+  /**
+   * Post entries automatically once they come due. When false the rule still shows
+   * in forecasts, but nothing is written to the ledger without you saying so.
+   */
+  autoPost: boolean
+  /** Latest date already posted, so a rule can never post the same day twice. */
+  lastPostedDate?: string
+  note?: string
+}
+
 export interface Settings {
   currency: string
   locale: string
@@ -71,4 +103,5 @@ export interface AppState {
   incomes: IncomeSource[]
   expenses: Expense[]
   goals: Goal[]
+  recurring: RecurringRule[]
 }

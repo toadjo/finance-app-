@@ -14,6 +14,26 @@ export interface BackupInfo {
   modified: string
 }
 
+export type UpdateState = 'disabled' | 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'current' | 'error'
+
+export interface UpdateStatus {
+  state: UpdateState
+  version: string
+  packageKind: string
+  latest?: string
+  percent?: number
+  error?: string
+}
+
+export interface UpdatesApi {
+  get(): Promise<{ enabled: boolean; lastCheck: string | null; status: UpdateStatus }>
+  setEnabled(enabled: boolean): Promise<{ enabled: boolean; status: UpdateStatus }>
+  check(): Promise<UpdateStatus>
+  download(): Promise<UpdateStatus>
+  install(): Promise<UpdateStatus>
+  onStatus(handler: (status: UpdateStatus) => void): () => void
+}
+
 export interface DesktopBridge {
   isDesktop: true
   save(contents: string, reason: SaveReason): Promise<{ file: string }>
@@ -25,6 +45,7 @@ export interface DesktopBridge {
   exportData(contents: string): Promise<{ canceled: boolean; filePath?: string }>
   importData(): Promise<{ canceled: boolean; filePath?: string; contents?: string }>
   blockedRequests(): Promise<{ url: string; at: string }[]>
+  updates: UpdatesApi
   onMenu(handler: (command: string) => void): () => void
 }
 

@@ -123,7 +123,7 @@ jobs:
             # Only an explicit request refreshes an existing release; routine branch
             # pushes must not re-upload ~180 MB every time.
             if [ "$EXPLICIT" = "true" ]; then
-              gh release upload "$TAG" Ledger-*.AppImage ledger_*.deb ledger-*.rpm SHA256SUMS.txt --clobber
+              gh release upload "$TAG" Ledger-*.AppImage ledger_*.deb ledger-*.rpm SHA256SUMS.txt latest-linux.yml --clobber
               # Refresh the body too, so its checksums match the assets just uploaded.
               gh release edit "$TAG" --notes-file notes.md
             else
@@ -132,7 +132,7 @@ jobs:
           else
             # Creates the tag at this commit as well, so no tag push is needed.
             gh release create "$TAG" \
-              Ledger-*.AppImage ledger_*.deb ledger-*.rpm SHA256SUMS.txt \
+              Ledger-*.AppImage ledger_*.deb ledger-*.rpm SHA256SUMS.txt latest-linux.yml \
               --target "${{ github.sha }}" \
               --title "Ledger $TAG" \
               --notes-file notes.md
@@ -146,5 +146,6 @@ jobs:
             release/Ledger-*.AppImage
             release/ledger_*.deb
             release/ledger-*.rpm
+            release/latest-linux.yml
             release/SHA256SUMS.txt
           retention-days: 30

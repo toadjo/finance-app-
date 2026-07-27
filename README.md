@@ -45,7 +45,7 @@ Either package registers Ledger in your application menu under Office/Finance. B
 ```bash
 npm run electron:dev   # Vite + Electron with hot reload
 npm run dev            # renderer only, in a browser at localhost:5173
-npm test               # 91 unit tests over the maths
+npm test               # 112 unit tests over the maths
 npm run typecheck
 ```
 
@@ -70,6 +70,10 @@ dashboard can tell you what lands when, and a five-payday month reads bigger tha
 **Goals** — a target, an optional deadline, and contributions you log. Each goal is **coached**: at the rate
 you're actually funding it, when does it land, and what exactly would fix it. Goals are also checked
 collectively against what you genuinely have spare.
+
+**Recurring** — declare the things that repeat: rent, subscriptions, and standing transfers into a savings
+goal. Each one logs itself as it falls due (including anything missed since its start date), or you can set
+it to forecast only and never touch the ledger. Pause one without losing its history.
 
 **Planning ahead** — step the month picker forward and a future month opens as a plan rather than a record:
 what your paydays bring in, the recurring bills your history says are coming, what your goals need, and
@@ -110,6 +114,21 @@ charges, so next March already knows about the rent.
 deadline: *"At $500 a month this lands 5 months late. Add $250 a month, or move the deadline to 2027-07."*
 Across all goals, required funding is compared against your typical monthly leftover; when you're
 over-committed it says by how much and which goals the money actually reaches, nearest deadline first.
+
+## Updates
+
+Updates are **off by default**, because an app that promises to be offline shouldn't quietly phone home.
+Settings → Updates turns them on, and that is the only thing that opens any network access at all.
+
+When enabled, the request allowlist admits exactly this repository's release endpoints — `api.github.com`
+for `/repos/toadjo/finance-app-/releases`, plus GitHub's release-download hosts — and nothing else. Any
+other request is still cancelled and logged, verified by test: with updates on, the releases endpoint is
+reachable while an unrelated host stays blocked. Your finances are never uploaded anywhere; the only
+traffic is "is there a newer version, and fetch it".
+
+AppImage, deb and rpm builds can all install an update in place (deb and rpm ask for authentication, since
+they touch system packages). Help → About reports whether updates are on and how many outbound requests
+have been blocked.
 
 ## Your data
 

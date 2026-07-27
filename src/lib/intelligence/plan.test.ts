@@ -101,6 +101,47 @@ describe('planMonth', () => {
   })
 })
 
+describe('declared rules in a plan', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(TODAY)
+  })
+  afterEach(() => vi.useRealTimers())
+
+  const gym = {
+    id: 'gym',
+    kind: 'expense' as const,
+    label: 'Gym',
+    amount: 35,
+    frequency: 'monthly' as const,
+    anchor: '2026-05-10',
+    categoryId: 'health',
+    active: true,
+    autoPost: false,
+  }
+
+  it('counts scheduled rules separately from inferred bills', () => {
+    const plan = planMonth({ ...makeLedger(), recurring: [gym] }, '2026-09')
+    expect(plan.scheduled).toBe(35)
+    expect(plan.leftOver).toBeCloseTo(1536.01, 2) // 35 less than without the rule
+  })
+
+  it('lets a declared rule supersede the inferred bill of the same name', () => {
+    const state = makeLedger()
+    // A rule named "Rent" must replace the guessed Rent, not stack with it.
+    const rentRule = { ...gym, id: 'rent', label: 'Rent', amount: 1500, categoryId: 'housing', anchor: '2026-05-01' }
+    const plan = planMonth({ ...state, recurring: [rentRule] }, '2026-09')
+    expect(plan.scheduled).toBe(1500)
+    expect(plan.expectedBills).toBeCloseTo(228.99, 2) // Netflix + the three shops, no rent
+  })
+
+  it('does not schedule a rule whose entry is already in the ledger', () => {
+    const state = makeLedger()
+    state.expenses.push({ id: 'gym-sep', date: '2026-09-10', amount: 35, categoryId: 'health', note: 'Gym' })
+    expect(planMonth({ ...state, recurring: [gym] }, '2026-09').scheduled).toBe(0)
+  })
+})
+
 describe('plannedItems', () => {
   beforeEach(() => {
     vi.useFakeTimers()

@@ -20,6 +20,7 @@ export const DEFAULT_STATE: AppState = {
   incomes: [],
   expenses: [],
   goals: [],
+  recurring: [],
 }
 
 /** Reads persisted state, tolerating absent, corrupt or partial payloads. */
@@ -53,5 +54,7 @@ function migrate(saved: Partial<AppState>): AppState {
     incomes: saved.incomes ?? [],
     expenses: saved.expenses ?? [],
     goals: (saved.goals ?? []).map((g) => ({ ...g, contributions: g.contributions ?? [] })),
+    // Added after v0.3; older saves simply have none.
+    recurring: saved.recurring ?? [],
   }
 }

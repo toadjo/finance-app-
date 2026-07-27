@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
 import type { ReactNode } from 'react'
-import type { AppState, Category, Contribution, Expense, Goal, IncomeSource, Settings } from '../types'
+import type { AppState, Category, Contribution, Expense, Goal, IncomeSource, RecurringRule, Settings } from '../types'
+import { collectDuePostings } from '../lib/recurringRules'
 import { DEFAULT_STATE, loadState, saveState } from '../lib/storage'
 import { desktop } from '../lib/desktop'
 import { uid } from '../lib/id'
@@ -21,6 +22,10 @@ export type Action =
   | { type: 'goal/remove'; id: string }
   | { type: 'goal/contribute'; goalId: string; contribution: Omit<Contribution, 'id'> }
   | { type: 'goal/uncontribute'; goalId: string; contributionId: string }
+  | { type: 'recurring/add'; rule: Omit<RecurringRule, 'id'> }
+  | { type: 'recurring/update'; id: string; patch: Partial<RecurringRule> }
+  | { type: 'recurring/remove'; id: string }
+  | { type: 'recurring/post-due'; until?: string }
   | { type: 'state/replace'; state: AppState }
   | { type: 'state/reset' }
 
@@ -101,6 +106,42 @@ export function reducer(state: AppState, action: Action): AppState {
             : g,
         ),
       }
+
+    case 'recurring/add':
+      return { ...state, recurring: [...state.recurring, { ...action.rule, id: uid() }] }
+
+    case 'recurring/update':
+      return {
+        ...state,
+        recurring: state.recurring.map((r) => (r.id === action.id ? { ...r, ...action.patch } : r)),
+      }
+
+    case 'recurring/remove':
+      return { ...state, recurring: state.recurring.filter((r) => r.id !== action.id) }
+
+    case 'recurring/post-due': {
+      // Writes every occurrence that has come due, and advances each rule's watermark
+      // in the same update so nothing can post twice.
+      const due = collectDuePostings(state, action.until)
+      if (due.count === 0) return state
+
+      const goalContributions = new Map<string, Contribution[]>()
+      for (const { goalId, contribution } of due.contributions) {
+        goalContributions.set(goalId, [...(goalContributions.get(goalId) ?? []), contribution])
+      }
+
+      return {
+        ...state,
+        expenses: [...state.expenses, ...due.expenses],
+        goals: state.goals.map((goal) => {
+          const added = goalContributions.get(goal.id)
+          return added ? { ...goal, contributions: [...goal.contributions, ...added] } : goal
+        }),
+        recurring: state.recurring.map((rule) =>
+          due.watermarks[rule.id] ? { ...rule, lastPostedDate: due.watermarks[rule.id] } : rule,
+        ),
+      }
+    }
 
     case 'state/replace':
       return action.state

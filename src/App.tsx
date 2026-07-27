@@ -4,17 +4,19 @@ import { Dashboard } from './components/Dashboard'
 import { ExpensesView } from './components/ExpensesView'
 import { IncomeView } from './components/IncomeView'
 import { GoalsView } from './components/GoalsView'
+import { RecurringView } from './components/RecurringView'
 import { SettingsView } from './components/SettingsView'
 import { Modal } from './components/ui'
 import type { AppState } from './types'
 import { addMonths, currentMonth, formatMonth } from './lib/date'
 import { desktop, isDesktop } from './lib/desktop'
 
-export type View = 'dashboard' | 'expenses' | 'income' | 'goals' | 'settings'
+export type View = 'dashboard' | 'expenses' | 'recurring' | 'income' | 'goals' | 'settings'
 
 const NAV: { id: View; label: string; icon: string; title: string; subtitle: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '◎', title: 'Dashboard', subtitle: 'Your month at a glance' },
   { id: 'expenses', label: 'Expenses', icon: '🧾', title: 'Expenses', subtitle: 'Every spend, categorised' },
+  { id: 'recurring', label: 'Recurring', icon: '🔁', title: 'Recurring', subtitle: 'Bills and transfers that repeat' },
   { id: 'income', label: 'Income', icon: '💰', title: 'Income', subtitle: 'What you make each month' },
   { id: 'goals', label: 'Goals', icon: '🎯', title: 'Goals', subtitle: 'What you are saving towards' },
   { id: 'settings', label: 'Settings', icon: '⚙︎', title: 'Settings', subtitle: 'Categories, currency and your data' },
@@ -55,6 +57,20 @@ function Shell() {
       else setView('settings')
     })
   }, [])
+
+  // Write any recurring items that have fallen due — on launch, and again whenever the
+  // rules change, so a rule you add backdated starts posting immediately rather than
+  // waiting for the next launch. The reducer is idempotent, so extra runs cost nothing
+  // and this settles after one pass.
+  useEffect(() => {
+    dispatch({ type: 'recurring/post-due' })
+  }, [dispatch, state.recurring])
+
+  // And hourly, for an app left open across midnight.
+  useEffect(() => {
+    const timer = setInterval(() => dispatch({ type: 'recurring/post-due' }), 60 * 60 * 1000)
+    return () => clearInterval(timer)
+  }, [dispatch])
 
   // If the browser store was cleared but the app has data on disk, offer it back
   // rather than silently starting from nothing.
@@ -145,6 +161,7 @@ function Shell() {
 
         {view === 'dashboard' && <Dashboard month={month} onNavigate={setView} />}
         {view === 'expenses' && <ExpensesView month={month} />}
+        {view === 'recurring' && <RecurringView month={month} />}
         {view === 'income' && <IncomeView month={month} />}
         {view === 'goals' && <GoalsView month={month} />}
         {view === 'settings' && <SettingsView />}

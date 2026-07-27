@@ -30,6 +30,20 @@ contextBridge.exposeInMainWorld('ledger', {
   /** Outbound requests the main process refused. Should always be empty. */
   blockedRequests: () => ipcRenderer.invoke('ledger:blocked-requests'),
 
+  /** Opt-in updates from this project's GitHub releases. Off unless you enable it. */
+  updates: {
+    get: () => ipcRenderer.invoke('updates:get'),
+    setEnabled: (enabled) => ipcRenderer.invoke('updates:set-enabled', enabled),
+    check: () => ipcRenderer.invoke('updates:check'),
+    download: () => ipcRenderer.invoke('updates:download'),
+    install: () => ipcRenderer.invoke('updates:install'),
+    onStatus: (handler) => {
+      const listener = (_event, status) => handler(status)
+      ipcRenderer.on('update-status', listener)
+      return () => ipcRenderer.removeListener('update-status', listener)
+    },
+  },
+
   /** Menu commands, e.g. 'view:goals', 'month:prev', 'export'. Returns an unsubscribe fn. */
   onMenu: (handler) => {
     const listener = (_event, command) => handler(command)
