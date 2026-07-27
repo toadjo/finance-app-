@@ -1,0 +1,101 @@
+name: Release (Linux)
+
+# Pushing a v* tag builds the Linux packages and publishes them as a GitHub Release.
+# workflow_dispatch is available once this file reaches the default branch.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish the release under (e.g. v0.2.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    name: Build and publish Linux packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Never ship a build that doesn't typecheck or whose maths is broken.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build AppImage and deb
+        run: npx electron-builder --linux AppImage deb --publish never
+
+      - name: Checksums
+        working-directory: release
+        run: sha256sum Ledger-*.AppImage ledger_*.deb > SHA256SUMS.txt
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag || github.ref_name }}"
+          cd release
+
+          {
+            echo "Offline personal finance tracker for Linux — expenses, income and savings goals."
+            echo
+            echo '### Install'
+            echo
+            echo '**AppImage** (any distro, no root):'
+            echo '```bash'
+            echo "chmod +x Ledger-*.AppImage"
+            echo "./Ledger-*.AppImage"
+            echo '```'
+            echo 'If your distro ships without FUSE, add `--appimage-extract-and-run`.'
+            echo
+            echo '**Debian / Ubuntu:**'
+            echo '```bash'
+            echo "sudo apt install ./ledger_*_amd64.deb"
+            echo '```'
+            echo
+            echo '### Verify'
+            echo
+            echo '```'
+            cat SHA256SUMS.txt
+            echo '```'
+            echo
+            echo 'Runs entirely offline: outbound requests are blocked at the session and CSP layers,'
+            echo 'and your data stays in `~/.config/Ledger/`. See the README for details.'
+          } > notes.md
+
+          # Re-runs should refresh the assets rather than fall over.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" Ledger-*.AppImage ledger_*.deb SHA256SUMS.txt --clobber
+          else
+            gh release create "$TAG" \
+              Ledger-*.AppImage ledger_*.deb SHA256SUMS.txt \
+              --title "Ledger $TAG" \
+              --notes-file notes.md
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledger-linux
+          path: |
+            release/Ledger-*.AppImage
+            release/ledger_*.deb
+            release/SHA256SUMS.txt
+          retention-days: 30
