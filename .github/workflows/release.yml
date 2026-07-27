@@ -42,8 +42,16 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Build AppImage and deb
+      # Must run before packaging: electron-builder will happily ship an AppImage
+      # with no renderer in it if dist/ was never built.
+      - name: Build renderer
+        run: npm run build
+
+      - name: Package AppImage and deb
         run: npx electron-builder --linux AppImage deb --publish never
+
+      - name: Verify the package contains the app
+        run: node scripts/verify-package.mjs
 
       - name: Checksums
         working-directory: release
@@ -62,6 +70,10 @@ jobs:
             EXPLICIT=true
           elif [ "${{ github.ref_type }}" = "tag" ]; then
             TAG="${{ github.ref_name }}"
+            EXPLICIT=true
+          elif [ "${{ contains(github.event.head_commit.message, '[republish]') }}" = "true" ]; then
+            # Escape hatch for replacing the assets of a release that shipped broken.
+            TAG="v$(node -p "require('./package.json').version")"
             EXPLICIT=true
           else
             TAG="v$(node -p "require('./package.json').version")"
