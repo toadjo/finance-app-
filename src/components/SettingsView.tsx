@@ -4,6 +4,7 @@ import type { AppState, Category } from '../types'
 import { desktop, type BackupInfo, type UpdateStatus } from '../lib/desktop'
 import { formatMoney, parseAmount } from '../lib/money'
 import { sampleState } from '../lib/sample'
+import { useTheme, type Theme } from '../lib/theme'
 import { Card, CardHeader, Field, Modal } from './ui'
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN', 'INR', 'BRL', 'MXN', 'ZAR']
@@ -12,6 +13,7 @@ const PALETTE = ['#007AFF', '#34C759', '#5AC8FA', '#FF9500', '#FFCC00', '#FF2D55
 
 export function SettingsView() {
   const { state, dispatch } = useStore()
+  const [theme, setTheme] = useTheme()
   const [editing, setEditing] = useState<Category | 'new' | null>(null)
   const [message, setMessage] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
@@ -92,6 +94,22 @@ export function SettingsView() {
           </div>
           <div className="faint" style={{ marginTop: 10 }}>
             Preview: {formatMoney(1234.5, state.settings)}
+          </div>
+
+          <div className="field" style={{ marginTop: 14 }}>
+            <label>Appearance</label>
+            <div className="pace-picker">
+              {(['light', 'dark'] as Theme[]).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className={`pace-option ${theme === option ? 'selected' : ''}`}
+                  onClick={() => setTheme(option)}
+                >
+                  <strong>{option === 'light' ? 'Light' : 'Dark'}</strong>
+                </button>
+              ))}
+            </div>
           </div>
         </Card>
 

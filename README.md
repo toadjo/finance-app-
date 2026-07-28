@@ -139,6 +139,30 @@ deadline: *"At $500 a month this lands 5 months late. Add $250 a month, or move 
 Across all goals, required funding is compared against your typical monthly leftover; when you're
 over-committed it says by how much and which goals the money actually reaches, nearest deadline first.
 
+## On your phone
+
+The same app installs to an iPhone or Android home screen as a PWA — no App Store, no
+developer account, no Mac. Every push publishes the web build to GitHub Pages:
+
+**https://toadjo.github.io/finance-app-/**
+
+On iPhone: open that in **Safari** (not Chrome), tap **Share → Add to Home Screen**. You get an icon, a
+full-screen app with no browser chrome, and it works with no signal because the whole app is precached by
+a service worker.
+
+The phone layout is its own thing: a bottom tab bar with labels, thumb-sized controls, tables restacked as
+cards, forms that slide up as sheets, and safe-area padding for the notch and home indicator.
+
+Two things to know:
+
+- **The phone and the desktop keep separate ledgers.** There is no sync. Move data between them with
+  Settings → Export JSON / Import JSON — on iOS the export lands in Files.
+- **iOS can evict a web app's storage** under pressure. For anything you'd hate to lose, export
+  occasionally. A native wrapper would remove that risk, but needs a Mac and an Apple developer account.
+
+Publishing the app does not publish your data: the ledger lives in your device's own storage and is never
+uploaded anywhere.
+
 ## Look and feel
 
 The interface follows macOS conventions: a frameless window with traffic-light controls, a translucent

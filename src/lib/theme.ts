@@ -1,0 +1,39 @@
+import { useSyncExternalStore } from 'react'
+
+/**
+ * Light or dark appearance, shared by the sidebar toggle and the Settings panel.
+ *
+ * It lives outside React state because two separate parts of the tree change it, and
+ * the phone layout hides the sidebar entirely — Settings has to be able to reach it.
+ */
+
+export type Theme = 'light' | 'dark'
+
+const KEY = 'ledger.theme'
+const listeners = new Set<() => void>()
+
+export function readTheme(): Theme {
+  if (typeof localStorage === 'undefined') return 'light'
+  // Light by default, the way a Mac app opens.
+  return localStorage.getItem(KEY) === 'dark' ? 'dark' : 'light'
+}
+
+export function applyTheme(theme: Theme): void {
+  document.documentElement.classList.toggle('dark', theme === 'dark')
+  try {
+    localStorage.setItem(KEY, theme)
+  } catch {
+    /* a private-mode browser that refuses storage still gets the right colours */
+  }
+  for (const listener of listeners) listener()
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
+export function useTheme(): [Theme, (theme: Theme) => void] {
+  const theme = useSyncExternalStore(subscribe, readTheme, () => 'light' as Theme)
+  return [theme, applyTheme]
+}

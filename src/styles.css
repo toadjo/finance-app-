@@ -851,52 +851,178 @@ th.right {
   color: var(--text-muted);
 }
 
+/* ---------- phone ---------- */
+
 @media (max-width: 820px) {
+  body {
+    /* 16px minimum stops iOS zooming the page when a field is focused. */
+    font-size: 15px;
+  }
+
   .app {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
 
   .titlebar {
-    grid-column: 1;
+    display: none;
   }
 
+  /* The sidebar becomes an iOS-style tab bar pinned to the bottom. */
   .sidebar {
-    position: static;
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 20;
+    /* More opaque than the desktop sidebar: content scrolling underneath a tab bar
+       has to stay unreadable, or the labels turn to mud. */
+    background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 0;
     height: auto;
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    overflow-x: auto;
-    padding: 10px 12px;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
     border-right: 0;
-    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    overflow: visible;
   }
 
-  .brand {
-    padding: 0 8px 0 0;
-  }
-
-  .brand span:last-child {
-    display: none;
-  }
-
-  .nav-item span:last-child {
-    display: none;
-  }
-
+  .brand,
   .sidebar-footer {
-    margin-left: auto;
-    margin-top: 0;
-    flex-direction: row;
-    align-items: center;
+    display: none;
   }
 
-  .sidebar-footer .faint {
-    display: none;
+  .nav-item {
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-height: 48px;
+    padding: 6px 2px;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 10.5px;
+    text-align: center;
+  }
+
+  /* A filled pill is too heavy at tab-bar size; colour alone reads better. */
+  .nav-item.active {
+    background: transparent;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .nav-item .nav-icon {
+    width: auto;
+    font-size: 17px;
+    line-height: 1;
+  }
+
+  /* Labels stay — icon-only tabs are a guessing game. */
+  .nav-item span:last-child {
+    display: block;
   }
 
   .main {
-    padding: 18px 16px 56px;
+    padding: 16px 14px calc(84px + env(safe-area-inset-bottom));
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .topbar h1 {
+    font-size: 26px;
+  }
+
+  .month-picker {
+    width: 100%;
+  }
+
+  .month-picker span {
+    flex: 1;
+  }
+
+  /* Comfortable thumb targets throughout. */
+  .btn,
+  .icon-button {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  .btn.small {
+    min-height: 38px;
+    padding: 8px 12px;
+  }
+
+  .icon-button {
+    min-width: 44px;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    min-height: 44px;
+    /* Below 16px, focusing a field zooms the whole page on iOS. */
+    font-size: 16px;
+  }
+
+  /* Tables don't fit a phone: each row becomes its own stacked card. */
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table td {
+    padding: 3px 0;
+    border: 0;
+  }
+
+  .table td.right,
+  .table td:last-child {
+    text-align: left;
+  }
+
+  .table .actions {
+    opacity: 1;
+    display: flex;
+    gap: 6px;
+    padding-top: 6px;
+  }
+
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  /* Forms arrive as a sheet from the bottom, the way iOS presents them. */
+  .modal {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .donut-wrap {
+    justify-content: center;
+  }
+
+  .grid.stats,
+  .grid.two {
+    grid-template-columns: 1fr;
   }
 }
 

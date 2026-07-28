@@ -11,6 +11,7 @@ import { Titlebar } from './components/Titlebar'
 import type { AppState } from './types'
 import { addMonths, currentMonth, formatMonth } from './lib/date'
 import { desktop, isDesktop } from './lib/desktop'
+import { readTheme, useTheme } from './lib/theme'
 
 export type View = 'dashboard' | 'expenses' | 'recurring' | 'income' | 'goals' | 'settings'
 
@@ -36,15 +37,12 @@ function Shell() {
   const [recovery, setRecovery] = useState<AppState | null>(null)
   const [view, setView] = useState<View>('dashboard')
   const [month, setMonth] = useState(currentMonth())
-  // Light by default, the way a Mac app opens.
-  const [theme, setTheme] = useState<'dark' | 'light'>(
-    () => (localStorage.getItem('ledger.theme') as 'dark' | 'light') ?? 'light',
-  )
+  const [theme, setTheme] = useTheme()
 
+  // Apply whatever was stored before the first paint of a fresh session.
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark')
-    localStorage.setItem('ledger.theme', theme)
-  }, [theme])
+    setTheme(readTheme())
+  }, [setTheme])
 
   // Native menu commands. Export/import/backup live in Settings, so those jump there.
   useEffect(() => {
@@ -55,7 +53,7 @@ function Shell() {
       else if (command === 'month:prev') setMonth((m) => addMonths(m, -1))
       else if (command === 'month:next') setMonth((m) => (m >= currentMonth() ? m : addMonths(m, 1)))
       else if (command === 'month:today') setMonth(currentMonth())
-      else if (command === 'theme') setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+      else if (command === 'theme') setTheme(readTheme() === 'dark' ? 'light' : 'dark')
       else setView('settings')
     })
   }, [])

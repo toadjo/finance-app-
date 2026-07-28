@@ -3,7 +3,7 @@
   "productName": "Ledger",
   "description": "Offline personal finance tracker: expenses, income and savings goals",
   "private": true,
-  "version": "0.6.3",
+  "version": "0.7.0",
   "homepage": "https://github.com/toadjo/finance-app-",
   "type": "module",
   "main": "electron/main.cjs",
@@ -17,7 +17,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dist": "npm run build && electron-builder --linux AppImage deb rpm",
-    "dist:dir": "npm run build && electron-builder --linux dir"
+    "dist:dir": "npm run build && electron-builder --linux dir",
+    "build:web": "vite build --base=/finance-app-/"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
@@ -33,6 +34,7 @@
     "electron-builder": "^25.1.8",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
+    "vite-plugin-pwa": "^1.3.0",
     "vitest": "^2.1.9",
     "wait-on": "^8.0.5"
   },
