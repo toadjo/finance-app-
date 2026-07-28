@@ -45,21 +45,24 @@ export function PlanView({
           }
         />
         <Stat
-          label="Expected bills"
+          label="Monthly bills"
           value={formatMoney(plan.scheduled + plan.expectedBills, settings)}
           note={(() => {
-            const scheduled = items.filter((i) => i.kind === 'scheduled').length
+            const yours = items.filter((i) => i.kind === 'scheduled').length
             const predicted = items.filter((i) => i.kind === 'expected').length
-            if (scheduled + predicted === 0) return 'Nothing repeating due this month'
-            return `${scheduled} from your recurring items · ${predicted} predicted from history`
+            if (yours + predicted === 0) return 'Nothing repeating due this month'
+            if (predicted === 0) return `${yours} recurring ${yours === 1 ? 'bill' : 'bills'} you set up`
+            return `${yours} you set up · ${predicted} predicted from your history`
           })()}
         />
         <Stat
-          label="Your expenses"
+          label="One-off spending"
           value={formatMoney(plan.planned, settings)}
           note={(() => {
             const n = items.filter((i) => i.kind === 'entered').length
-            return `${n} ${n === 1 ? 'expense' : 'expenses'} you entered for this month`
+            return n === 0
+              ? 'Nothing one-off planned yet'
+              : `${n} ${n === 1 ? 'expense' : 'expenses'} you added for this month`
           })()}
         />
         <Stat
@@ -93,7 +96,7 @@ export function PlanView({
         <Card>
           <CardHeader
             title="What this month looks like"
-            hint={`${formatMonth(month, settings.locale)} · anything you enter replaces the matching prediction`}
+            hint={`${formatMonth(month, settings.locale)} · bills you add yourself replace the predicted ones`}
             action={
               <button className="btn primary small" onClick={() => onNavigate('expenses')}>
                 + Plan an expense
@@ -104,7 +107,7 @@ export function PlanView({
             <EmptyState
               emoji="🗓"
               title="Nothing planned yet"
-              hint="Add an expense dated in this month, and recurring bills will fill themselves in."
+              hint="Add an expense dated in this month, and your monthly bills will fill themselves in."
             />
           ) : (
             <div>
@@ -115,7 +118,7 @@ export function PlanView({
                     {item.label}
                     <div className="faint">
                       {formatDayShort(item.date, settings.locale)} · {category(item.categoryId)?.name} ·{' '}
-                      {item.kind === 'expected' ? 'predicted' : item.kind === 'scheduled' ? 'scheduled' : 'you entered'}
+                      {item.kind === 'expected' ? 'predicted bill' : item.kind === 'scheduled' ? 'recurring bill' : 'one-off'}
                     </div>
                   </span>
                   <span
@@ -133,9 +136,9 @@ export function PlanView({
         <Card>
           <CardHeader title="How the month is committed" />
           <div className="stack" style={{ gap: 12 }}>
-            <Slice label="Entered by you" value={plan.planned} total={plan.income} color="#FF3B30" settings={settings} />
-            <Slice label="Scheduled rules" value={plan.scheduled} total={plan.income} color="#FF9500" settings={settings} />
-            <Slice label="Still predicted" value={plan.expectedBills} total={plan.income} color="var(--warning)" settings={settings} />
+            <Slice label="Recurring bills" value={plan.scheduled} total={plan.income} color="#FF9500" settings={settings} />
+            <Slice label="Predicted bills" value={plan.expectedBills} total={plan.income} color="var(--warning)" settings={settings} />
+            <Slice label="One-off spending" value={plan.planned} total={plan.income} color="#FF3B30" settings={settings} />
             <Slice label="Goal funding" value={plan.goalFunding} total={plan.income} color="var(--accent)" settings={settings} />
             <Slice
               label="Unallocated"
