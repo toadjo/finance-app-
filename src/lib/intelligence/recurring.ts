@@ -157,13 +157,26 @@ const AMOUNT_TOLERANCE = 0.15
  */
 export function matchesEntry(
   expense: Expense,
-  target: { categoryId?: string; amount: number; key?: string; label?: string },
+  target: {
+    categoryId?: string
+    amount: number
+    key?: string
+    label?: string
+    /**
+     * Allow a same-category, similar-sized expense to count as this charge.
+     * Right for *predictions*, which you may re-enter in your own words. Wrong for
+     * *declared rules*, which post with their label verbatim — there, a coincidence
+     * of size would silently delete something you explicitly set up.
+     */
+    amountFallback?: boolean
+  },
 ): boolean {
   if (target.key && groupKey(expense) === target.key) return true
 
   const note = (expense.note ?? '').trim().toLowerCase()
   if (target.label && note && note === target.label.trim().toLowerCase()) return true
 
+  if (target.amountFallback === false) return false
   if (!target.categoryId || expense.categoryId !== target.categoryId) return false
   if (target.amount <= 0) return false
   return Math.abs(expense.amount - target.amount) <= target.amount * AMOUNT_TOLERANCE

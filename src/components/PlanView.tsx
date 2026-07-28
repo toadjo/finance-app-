@@ -45,21 +45,22 @@ export function PlanView({
           }
         />
         <Stat
-          label="You've entered"
-          value={formatMoney(plan.planned + plan.scheduled, settings)}
+          label="Expected bills"
+          value={formatMoney(plan.scheduled + plan.expectedBills, settings)}
           note={(() => {
-            const n = items.filter((i) => i.kind !== 'expected').length
-            return `${n} ${n === 1 ? 'item' : 'items'} you added or scheduled`
+            const scheduled = items.filter((i) => i.kind === 'scheduled').length
+            const predicted = items.filter((i) => i.kind === 'expected').length
+            if (scheduled + predicted === 0) return 'Nothing repeating due this month'
+            return `${scheduled} from your recurring items · ${predicted} predicted from history`
           })()}
         />
         <Stat
-          label="Still predicted"
-          value={formatMoney(plan.expectedBills, settings)}
-          note={
-            plan.expectedBills > 0
-              ? "Repeat charges you haven't entered yet"
-              : "Nothing left to predict — you've entered it all"
-          }
+          label="Your expenses"
+          value={formatMoney(plan.planned, settings)}
+          note={(() => {
+            const n = items.filter((i) => i.kind === 'entered').length
+            return `${n} ${n === 1 ? 'expense' : 'expenses'} you entered for this month`
+          })()}
         />
         <Stat
           label={plan.leftOver >= 0 ? 'Left to play with' : 'Short by'}

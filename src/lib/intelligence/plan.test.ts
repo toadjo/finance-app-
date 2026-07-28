@@ -211,3 +211,40 @@ describe('an expense you enter replaces the prediction of it', () => {
     expect(plan.planned + plan.expectedBills).toBeCloseTo(1678.99, 2)
   })
 })
+
+describe('a declared rule is not deleted by coincidence', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(TODAY)
+  })
+  afterEach(() => vi.useRealTimers())
+
+  const gym = {
+    id: 'gym',
+    kind: 'expense' as const,
+    label: 'Gym membership',
+    amount: 35,
+    frequency: 'monthly' as const,
+    anchor: '2026-07-10',
+    categoryId: 'health',
+    active: true,
+    autoPost: true,
+  }
+
+  it('shows a monthly rule in a future month', () => {
+    expect(planMonth({ ...makeLedger(), recurring: [gym] }, '2026-08').scheduled).toBe(35)
+  })
+
+  it('survives an unrelated expense of similar size in the same category', () => {
+    const state = makeLedger()
+    state.expenses.push({ id: 'p', date: '2026-08-04', amount: 38, categoryId: 'health', note: 'Prescription' })
+    expect(planMonth({ ...state, recurring: [gym] }, '2026-08').scheduled).toBe(35)
+  })
+
+  it('still steps aside once the rule has actually posted its entry', () => {
+    const state = makeLedger()
+    // Auto-posted entries carry the rule's label verbatim.
+    state.expenses.push({ id: 'g', date: '2026-08-10', amount: 35, categoryId: 'health', note: 'Gym membership' })
+    expect(planMonth({ ...state, recurring: [gym] }, '2026-08').scheduled).toBe(0)
+  })
+})

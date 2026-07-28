@@ -83,7 +83,12 @@ function pendingScheduled(state: AppState, month: MonthKey) {
   return scheduledIn(state.recurring, month, 'expense').filter(
     (item) =>
       !entered.some((e) =>
-        matchesEntry(e, { categoryId: item.rule.categoryId, amount: item.rule.amount, label: item.rule.label }),
+        matchesEntry(e, {
+          categoryId: item.rule.categoryId,
+          amount: item.rule.amount,
+          label: item.rule.label,
+          amountFallback: false,
+        }),
       ),
   )
 }
