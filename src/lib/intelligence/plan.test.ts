@@ -161,3 +161,53 @@ describe('plannedItems', () => {
     ])
   })
 })
+
+describe('an expense you enter replaces the prediction of it', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(TODAY)
+  })
+  afterEach(() => vi.useRealTimers())
+
+  /** Rent 1450 + Netflix 12.99 + three shops (60/72/84) = 1678.99 predicted. */
+  const withoutRent = 228.99
+
+  it('matches on the exact note', () => {
+    const state = makeLedger()
+    state.expenses.push({ id: 'r1', date: '2026-09-01', amount: 1450, categoryId: 'housing', note: 'Rent' })
+    expect(planMonth(state, '2026-09').expectedBills).toBeCloseTo(withoutRent, 2)
+  })
+
+  it('matches when you word the note differently', () => {
+    const state = makeLedger()
+    state.expenses.push({ id: 'r2', date: '2026-09-01', amount: 1450, categoryId: 'housing', note: 'Rent for the flat' })
+    expect(planMonth(state, '2026-09').expectedBills).toBeCloseTo(withoutRent, 2)
+  })
+
+  it('matches when you leave the note blank', () => {
+    const state = makeLedger()
+    state.expenses.push({ id: 'r3', date: '2026-09-01', amount: 1450, categoryId: 'housing' })
+    expect(planMonth(state, '2026-09').expectedBills).toBeCloseTo(withoutRent, 2)
+  })
+
+  it('tolerates a small change in the amount', () => {
+    const state = makeLedger()
+    state.expenses.push({ id: 'r4', date: '2026-09-01', amount: 1520, categoryId: 'housing', note: 'Rent' })
+    expect(planMonth(state, '2026-09').expectedBills).toBeCloseTo(withoutRent, 2)
+  })
+
+  it('does not swallow an unrelated expense in the same category', () => {
+    const state = makeLedger()
+    // A small repair is not the rent, so rent stays predicted.
+    state.expenses.push({ id: 'r5', date: '2026-09-03', amount: 60, categoryId: 'housing', note: 'Door handle' })
+    expect(planMonth(state, '2026-09').expectedBills).toBeCloseTo(1678.99, 2)
+  })
+
+  it('leaves the total honest rather than counting the bill twice', () => {
+    const state = makeLedger()
+    state.expenses.push({ id: 'r6', date: '2026-09-01', amount: 1450, categoryId: 'housing', note: 'August rent' })
+    const plan = planMonth(state, '2026-09')
+    // Entered 1450 + predicted 228.99 — not 1450 + 1678.99.
+    expect(plan.planned + plan.expectedBills).toBeCloseTo(1678.99, 2)
+  })
+})

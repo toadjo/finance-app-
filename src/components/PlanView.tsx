@@ -29,7 +29,7 @@ export function PlanView({
   settings: Settings
   onNavigate: (view: View) => void
 }) {
-  const committed = plan.planned + plan.expectedBills + plan.goalFunding
+  const committed = plan.planned + plan.scheduled + plan.expectedBills + plan.goalFunding
   const category = (id: string) => categories.find((c) => c.id === id)
 
   return (
@@ -45,17 +45,21 @@ export function PlanView({
           }
         />
         <Stat
-          label="Already planned"
-          value={formatMoney(plan.planned, settings)}
+          label="You've entered"
+          value={formatMoney(plan.planned + plan.scheduled, settings)}
           note={(() => {
-            const n = items.filter((i) => i.kind === 'entered').length
-            return `${n} ${n === 1 ? 'expense' : 'expenses'} you've entered`
+            const n = items.filter((i) => i.kind !== 'expected').length
+            return `${n} ${n === 1 ? 'item' : 'items'} you added or scheduled`
           })()}
         />
         <Stat
-          label="Expected bills"
+          label="Still predicted"
           value={formatMoney(plan.expectedBills, settings)}
-          note="Recurring charges, from your history"
+          note={
+            plan.expectedBills > 0
+              ? "Repeat charges you haven't entered yet"
+              : "Nothing left to predict — you've entered it all"
+          }
         />
         <Stat
           label={plan.leftOver >= 0 ? 'Left to play with' : 'Short by'}
@@ -88,7 +92,7 @@ export function PlanView({
         <Card>
           <CardHeader
             title="What this month looks like"
-            hint={formatMonth(month, settings.locale)}
+            hint={`${formatMonth(month, settings.locale)} · anything you enter replaces the matching prediction`}
             action={
               <button className="btn primary small" onClick={() => onNavigate('expenses')}>
                 + Plan an expense
@@ -109,8 +113,8 @@ export function PlanView({
                   <span className="grow truncate">
                     {item.label}
                     <div className="faint">
-                      {formatDayShort(item.date, settings.locale)} · {category(item.categoryId)?.name}
-                      {item.kind === 'expected' && ' · expected'}
+                      {formatDayShort(item.date, settings.locale)} · {category(item.categoryId)?.name} ·{' '}
+                      {item.kind === 'expected' ? 'predicted' : item.kind === 'scheduled' ? 'scheduled' : 'you entered'}
                     </div>
                   </span>
                   <span
@@ -128,8 +132,9 @@ export function PlanView({
         <Card>
           <CardHeader title="How the month is committed" />
           <div className="stack" style={{ gap: 12 }}>
-            <Slice label="Planned expenses" value={plan.planned} total={plan.income} color="#FF3B30" settings={settings} />
-            <Slice label="Expected bills" value={plan.expectedBills} total={plan.income} color="var(--warning)" settings={settings} />
+            <Slice label="Entered by you" value={plan.planned} total={plan.income} color="#FF3B30" settings={settings} />
+            <Slice label="Scheduled rules" value={plan.scheduled} total={plan.income} color="#FF9500" settings={settings} />
+            <Slice label="Still predicted" value={plan.expectedBills} total={plan.income} color="var(--warning)" settings={settings} />
             <Slice label="Goal funding" value={plan.goalFunding} total={plan.income} color="var(--accent)" settings={settings} />
             <Slice
               label="Unallocated"

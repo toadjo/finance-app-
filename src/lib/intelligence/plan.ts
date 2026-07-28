@@ -1,7 +1,7 @@
 import type { AppState } from '../../types'
 import { monthOf, todayKey, type MonthKey } from '../date'
 import { expensesForMonth, monthlyIncome, sumAmounts } from '../selectors'
-import { projectedBillsIn } from './recurring'
+import { matchesEntry, projectedBillsIn } from './recurring'
 import { incomeArrivingIn, paydaysIn } from '../payday'
 import { scheduledIn } from '../recurringRules'
 import { allocateSavings } from './allocate'
@@ -79,11 +79,12 @@ export function planMonth(state: AppState, month: MonthKey): MonthPlan {
  * Auto-posting fills past months in for real, so those must not be counted twice.
  */
 function pendingScheduled(state: AppState, month: MonthKey) {
-  const entered = new Set(
-    expensesForMonth(state.expenses, month).map((e) => (e.note ?? '').trim().toLowerCase()),
-  )
+  const entered = expensesForMonth(state.expenses, month)
   return scheduledIn(state.recurring, month, 'expense').filter(
-    (item) => !entered.has(item.rule.label.trim().toLowerCase()),
+    (item) =>
+      !entered.some((e) =>
+        matchesEntry(e, { categoryId: item.rule.categoryId, amount: item.rule.amount, label: item.rule.label }),
+      ),
   )
 }
 

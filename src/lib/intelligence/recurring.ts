@@ -144,21 +144,46 @@ export function detectRecurring(expenses: Expense[]): RecurringBill[] {
   return bills.sort((a, b) => a.nextDue.localeCompare(b.nextDue))
 }
 
+/** How far an amount may differ and still be recognised as the same charge. */
+const AMOUNT_TOLERANCE = 0.15
+
+/**
+ * Does this ledger entry represent `target`?
+ *
+ * Note text is the strongest signal, but people don't retype it identically — August's
+ * rent might be entered as "Rent for the flat", or with no note at all. So a same-category
+ * expense of about the right size counts too, otherwise the month would show rent twice:
+ * once as entered, once as still predicted.
+ */
+export function matchesEntry(
+  expense: Expense,
+  target: { categoryId?: string; amount: number; key?: string; label?: string },
+): boolean {
+  if (target.key && groupKey(expense) === target.key) return true
+
+  const note = (expense.note ?? '').trim().toLowerCase()
+  if (target.label && note && note === target.label.trim().toLowerCase()) return true
+
+  if (!target.categoryId || expense.categoryId !== target.categoryId) return false
+  if (target.amount <= 0) return false
+  return Math.abs(expense.amount - target.amount) <= target.amount * AMOUNT_TOLERANCE
+}
+
 /**
  * Bills projected into `month`, however far ahead it is, minus any you've already
  * logged yourself. This is what makes a future month worth looking at: next March
  * starts out already knowing about the rent and the subscriptions.
  */
 export function projectedBillsIn(expenses: Expense[], month: MonthKey): { bill: RecurringBill; date: DayKey }[] {
-  const alreadyLogged = new Set(
-    expenses.filter((e) => monthOf(e.date) === month).map((e) => groupKey(e)),
-  )
-
+  const entered = expenses.filter((e) => monthOf(e.date) === month)
   const projected: { bill: RecurringBill; date: DayKey }[] = []
 
   for (const bill of detectRecurring(expenses)) {
     // Don't double-count a bill you've already entered for that month.
-    if (alreadyLogged.has(bill.key)) continue
+    const covered = entered.some((e) =>
+      matchesEntry(e, { categoryId: bill.categoryId, amount: bill.typicalAmount, key: bill.key, label: bill.label }),
+    )
+    if (covered) continue
 
     const cadence = CADENCES.find((c) => c.frequency === bill.frequency)!
     let cursor = bill.lastDate

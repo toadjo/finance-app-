@@ -47,7 +47,7 @@ Fedora and Debian, and claiming it would collide with a real distro package. Bui
 ```bash
 npm run electron:dev   # Vite + Electron with hot reload
 npm run dev            # renderer only, in a browser at localhost:5173
-npm test               # 131 unit tests over the maths
+npm test               # 137 unit tests over the maths
 npm run typecheck
 ```
 
@@ -87,6 +87,10 @@ left is shared among the flexible ones in proportion to what each still needs.
 **Recurring** — declare the things that repeat: rent, subscriptions, and standing transfers into a savings
 goal. Each one logs itself as it falls due (including anything missed since its start date), or you can set
 it to forecast only and never touch the ledger. Pause one without losing its history.
+
+A future month separates **what you've entered** from **what's still predicted**. Anything you enter
+replaces the matching prediction — matched on the note, or failing that on a same-category charge of about
+the right size — so wording August's rent differently from July's doesn't make the month count it twice.
 
 **Planning ahead** — step the month picker forward and a future month opens as a plan rather than a record:
 what your paydays bring in, the recurring bills your history says are coming, what your goals need, and
