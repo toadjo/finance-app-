@@ -105,6 +105,8 @@ export function collectDuePostings(state: AppState, until: DayKey = todayKey()):
 export function describeRule(rule: RecurringRule, locale = 'en-US'): string {
   const day = Number(rule.anchor.slice(8))
   switch (rule.frequency) {
+    case 'once':
+      return 'Once only'
     case 'weekly':
     case 'biweekly': {
       const weekday = new Date(`${rule.anchor}T00:00:00`).toLocaleDateString(locale, { weekday: 'long' })

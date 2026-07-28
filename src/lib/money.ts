@@ -2,6 +2,8 @@ import type { Frequency, Settings } from '../types'
 
 /** How many times a `frequency` period occurs in an average month. */
 const PER_MONTH: Record<Frequency, number> = {
+  // A one-off is active only in its own month, so there it counts in full.
+  once: 1,
   weekly: 52 / 12,
   biweekly: 26 / 12,
   monthly: 1,
@@ -14,7 +16,14 @@ export function toMonthly(amount: number, frequency: Frequency): number {
 }
 
 export function frequencyLabel(frequency: Frequency): string {
-  return { weekly: 'per week', biweekly: 'every 2 weeks', monthly: 'per month', quarterly: 'per quarter', yearly: 'per year' }[frequency]
+  return {
+    once: 'one-off',
+    weekly: 'per week',
+    biweekly: 'every 2 weeks',
+    monthly: 'per month',
+    quarterly: 'per quarter',
+    yearly: 'per year',
+  }[frequency]
 }
 
 export function formatMoney(amount: number, settings: Settings, opts: { decimals?: boolean } = {}): string {

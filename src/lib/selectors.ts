@@ -3,6 +3,8 @@ import { toMonthly } from './money'
 import { daysUntil, monthOf, monthRange, monthsBetween, todayKey, type MonthKey } from './date'
 
 export function isIncomeActive(income: IncomeSource, month: MonthKey): boolean {
+  // A one-off exists only in the month it lands in, and needs a date to land on.
+  if (income.frequency === 'once') return income.payAnchor ? monthOf(income.payAnchor) === month : false
   if (income.startMonth && month < income.startMonth) return false
   if (income.endMonth && month > income.endMonth) return false
   return true

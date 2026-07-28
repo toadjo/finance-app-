@@ -47,7 +47,7 @@ Fedora and Debian, and claiming it would collide with a real distro package. Bui
 ```bash
 npm run electron:dev   # Vite + Electron with hot reload
 npm run dev            # renderer only, in a browser at localhost:5173
-npm test               # 125 unit tests over the maths
+npm test               # 131 unit tests over the maths
 npm run typecheck
 ```
 
@@ -64,7 +64,10 @@ six-month income-vs-spending chart, and a *Worth knowing* panel that surfaces on
 budget per category, shown as a bar that turns red when you go over. **The category fills itself in as you
 type the note.**
 
-**Income** — recurring sources at any cadence (weekly → yearly), normalised to a monthly figure. Sources can
+**Income** — recurring sources at any cadence (weekly → yearly) *and* **one-offs**: a bonus, a tax refund,
+something you sold. A one-off is a single dated amount that counts in full in its own month and nowhere
+else, so it lifts that month's income without inflating your average. Recurring sources are normalised to a
+monthly figure. Sources can
 have a start and/or end month, so a job you left stops counting toward later months. Give a source a
 **payday** — any one date it paid out — and the cadence derives every past and future payday from it, so the
 dashboard can tell you what lands when, and a five-payday month reads bigger than a four-payday one.
@@ -130,6 +133,16 @@ spending allowance — and safe-to-spend uses the *allocated* figure, not the st
 deadline: *"At $500 a month this lands 5 months late. Add $250 a month, or move the deadline to 2027-07."*
 Across all goals, required funding is compared against your typical monthly leftover; when you're
 over-committed it says by how much and which goals the money actually reaches, nearest deadline first.
+
+## Look and feel
+
+The interface follows macOS conventions: a frameless window with traffic-light controls, a translucent
+sidebar, System Blue accents, Apple's system colours for categories, and SF Pro typography where it's
+available (falling back to Inter or Cantarell on Linux). It opens in light appearance, with dark available
+from the sidebar.
+
+Because the window is frameless, the traffic lights are the window controls. `Ctrl+Q` always quits
+regardless, and double-clicking the title bar zooms the window as it does on macOS.
 
 ## Updates
 

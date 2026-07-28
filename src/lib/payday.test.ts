@@ -148,3 +148,52 @@ describe('describePayday', () => {
     expect(describePayday(noAnchor)).toBe('No payday set')
   })
 })
+
+describe('one-off income', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(TODAY)
+  })
+  afterEach(() => vi.useRealTimers())
+
+  const bonus: IncomeSource = {
+    id: 'bonus',
+    label: 'Work bonus',
+    amount: 2500,
+    frequency: 'once',
+    payAnchor: '2026-09-11',
+  }
+
+  it('lands on exactly one date, in one month', () => {
+    expect(payDatesIn(bonus, '2026-09')).toEqual(['2026-09-11'])
+    expect(payDatesIn(bonus, '2026-08')).toEqual([])
+    expect(payDatesIn(bonus, '2026-10')).toEqual([])
+    expect(payDatesIn(bonus, '2027-09')).toEqual([])
+  })
+
+  it('counts in full in its own month and nowhere else', () => {
+    expect(incomeArrivingIn([bonus], '2026-09')).toBe(2500)
+    expect(incomeArrivingIn([bonus], '2026-10')).toBe(0)
+  })
+
+  it('adds to the regular income of the month it lands in', () => {
+    expect(incomeArrivingIn([salary, bonus], '2026-09')).toBe(5500)
+    expect(incomeArrivingIn([salary, bonus], '2026-10')).toBe(3000)
+  })
+
+  it('shows up as the next payday when it is the soonest money', () => {
+    const soon: IncomeSource = { ...bonus, payAnchor: '2026-07-18' }
+    expect(nextPayday([salary, soon])?.date).toBe('2026-07-18')
+    expect(nextPayday([salary, soon])?.total).toBe(2500)
+  })
+
+  it('is inert without a date rather than leaking into every month', () => {
+    const { payAnchor: _unused, ...undated } = bonus
+    expect(incomeArrivingIn([undated], '2026-09')).toBe(0)
+    expect(payDatesIn(undated, '2026-09')).toEqual([])
+  })
+
+  it('describes itself as a one-off', () => {
+    expect(describePayday(bonus)).toBe('One-off')
+  })
+})

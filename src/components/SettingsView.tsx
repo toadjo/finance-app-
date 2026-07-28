@@ -8,7 +8,7 @@ import { Card, CardHeader, Field, Modal } from './ui'
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN', 'INR', 'BRL', 'MXN', 'ZAR']
 const LOCALES = ['en-US', 'en-GB', 'de-DE', 'fr-FR', 'es-ES', 'it-IT', 'nl-NL', 'sv-SE', 'pt-BR', 'ja-JP']
-const PALETTE = ['#6366f1', '#22c55e', '#38bdf8', '#f97316', '#eab308', '#ec4899', '#a855f7', '#14b8a6', '#f4645f', '#94a3b8']
+const PALETTE = ['#007AFF', '#34C759', '#5AC8FA', '#FF9500', '#FFCC00', '#FF2D55', '#AF52DE', '#32ADE6', '#FF3B30', '#8E8E93']
 
 export function SettingsView() {
   const { state, dispatch } = useStore()

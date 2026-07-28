@@ -7,6 +7,7 @@ import { GoalsView } from './components/GoalsView'
 import { RecurringView } from './components/RecurringView'
 import { SettingsView } from './components/SettingsView'
 import { Modal } from './components/ui'
+import { Titlebar } from './components/Titlebar'
 import type { AppState } from './types'
 import { addMonths, currentMonth, formatMonth } from './lib/date'
 import { desktop, isDesktop } from './lib/desktop'
@@ -35,12 +36,13 @@ function Shell() {
   const [recovery, setRecovery] = useState<AppState | null>(null)
   const [view, setView] = useState<View>('dashboard')
   const [month, setMonth] = useState(currentMonth())
+  // Light by default, the way a Mac app opens.
   const [theme, setTheme] = useState<'dark' | 'light'>(
-    () => (localStorage.getItem('ledger.theme') as 'dark' | 'light') ?? 'dark',
+    () => (localStorage.getItem('ledger.theme') as 'dark' | 'light') ?? 'light',
   )
 
   useEffect(() => {
-    document.documentElement.classList.toggle('light', theme === 'light')
+    document.documentElement.classList.toggle('dark', theme === 'dark')
     localStorage.setItem('ledger.theme', theme)
   }, [theme])
 
@@ -96,6 +98,7 @@ function Shell() {
 
   return (
     <div className="app">
+      <Titlebar title={active.title} />
       <nav className="sidebar">
         <div className="brand">
           <span className="brand-mark">▮</span>
@@ -114,7 +117,7 @@ function Shell() {
         ))}
         <div className="sidebar-footer">
           <button className="btn small" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-            {theme === 'dark' ? '☀︎ Light' : '☾ Dark'}
+            {theme === 'dark' ? 'Light appearance' : 'Dark appearance'}
           </button>
           <span className="faint">
             {state.expenses.length} expenses · {state.goals.length} goals

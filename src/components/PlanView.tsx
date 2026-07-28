@@ -128,7 +128,7 @@ export function PlanView({
         <Card>
           <CardHeader title="How the month is committed" />
           <div className="stack" style={{ gap: 12 }}>
-            <Slice label="Planned expenses" value={plan.planned} total={plan.income} color="#f4645f" settings={settings} />
+            <Slice label="Planned expenses" value={plan.planned} total={plan.income} color="#FF3B30" settings={settings} />
             <Slice label="Expected bills" value={plan.expectedBills} total={plan.income} color="var(--warning)" settings={settings} />
             <Slice label="Goal funding" value={plan.goalFunding} total={plan.income} color="var(--accent)" settings={settings} />
             <Slice

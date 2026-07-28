@@ -169,9 +169,12 @@ function createWindow() {
     height: state.height ?? 860,
     minWidth: 720,
     minHeight: 560,
-    backgroundColor: '#0b0d12',
+    backgroundColor: '#f2f2f7',
     show: false,
-    autoHideMenuBar: false,
+    // Frameless with our own traffic lights, so the window reads like a Mac app
+    // on a desktop that has no native equivalent.
+    frame: false,
+    autoHideMenuBar: true,
     title: 'Ledger',
     icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
@@ -186,6 +189,9 @@ function createWindow() {
 
   if (state.maximized) mainWindow.maximize()
   mainWindow.once('ready-to-show', () => mainWindow.show())
+  // Let the custom titlebar restyle its zoom button in step with the real state.
+  mainWindow.on('maximize', () => send('window-state', { maximized: true }))
+  mainWindow.on('unmaximize', () => send('window-state', { maximized: false }))
   mainWindow.on('close', () => saveWindowState(mainWindow))
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -340,6 +346,17 @@ function registerIpc() {
 
   // Exposed so the offline guarantee is inspectable from inside the app.
   ipcMain.handle('ledger:blocked-requests', () => blockedRequests)
+
+  // Window controls, since a frameless window has none of its own.
+  ipcMain.handle('window:minimize', () => mainWindow?.minimize())
+  ipcMain.handle('window:toggle-maximize', () => {
+    if (!mainWindow) return false
+    if (mainWindow.isMaximized()) mainWindow.unmaximize()
+    else mainWindow.maximize()
+    return mainWindow.isMaximized()
+  })
+  ipcMain.handle('window:close', () => mainWindow?.close())
+  ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() ?? false)
 }
 
 // ---------------------------------------------------------------- bootstrap

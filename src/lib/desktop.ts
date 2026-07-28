@@ -46,6 +46,13 @@ export interface DesktopBridge {
   importData(): Promise<{ canceled: boolean; filePath?: string; contents?: string }>
   blockedRequests(): Promise<{ url: string; at: string }[]>
   updates: UpdatesApi
+  window: {
+    minimize(): Promise<void>
+    toggleMaximize(): Promise<boolean>
+    close(): Promise<void>
+    isMaximized(): Promise<boolean>
+    onStateChange(handler: (state: { maximized: boolean }) => void): () => void
+  }
   onMenu(handler: (command: string) => void): () => void
 }
 

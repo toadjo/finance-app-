@@ -106,7 +106,7 @@ export function TrendChart({ months, settings }: { months: MonthSummary[]; setti
           <span className="dot" style={{ background: 'var(--accent)' }} /> Income
         </span>
         <span className="legend-row">
-          <span className="dot" style={{ background: '#f4645f' }} /> Spent
+          <span className="dot" style={{ background: '#FF3B30' }} /> Spent
         </span>
         <span style={{ marginLeft: 'auto' }} className="numeric">
           peak {formatCompact(peak, settings)}

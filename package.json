@@ -3,7 +3,7 @@
   "productName": "Ledger",
   "description": "Offline personal finance tracker: expenses, income and savings goals",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "homepage": "https://github.com/toadjo/finance-app-",
   "type": "module",
   "main": "electron/main.cjs",

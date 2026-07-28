@@ -44,6 +44,19 @@ contextBridge.exposeInMainWorld('ledger', {
     },
   },
 
+  /** Controls for the frameless window. */
+  window: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+    onStateChange: (handler) => {
+      const listener = (_event, state) => handler(state)
+      ipcRenderer.on('window-state', listener)
+      return () => ipcRenderer.removeListener('window-state', listener)
+    },
+  },
+
   /** Menu commands, e.g. 'view:goals', 'month:prev', 'export'. Returns an unsubscribe fn. */
   onMenu: (handler) => {
     const listener = (_event, command) => handler(command)

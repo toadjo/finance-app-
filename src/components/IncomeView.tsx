@@ -7,7 +7,7 @@ import { addMonths, currentMonth, formatDayShort, formatMonth, todayKey, type Mo
 import { describePayday, nextPayday, payDatesIn, paydaysIn } from '../lib/payday'
 import { Card, CardHeader, EmptyState, Field, Modal, ProgressBar } from './ui'
 
-const FREQUENCIES: Frequency[] = ['weekly', 'biweekly', 'monthly', 'quarterly', 'yearly']
+const FREQUENCIES: Frequency[] = ['once', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly']
 
 export function IncomeView({ month }: { month: MonthKey }) {
   const { state, dispatch } = useStore()
@@ -163,6 +163,7 @@ export function IncomeView({ month }: { month: MonthKey }) {
 }
 
 function activeRange(income: IncomeSource): string {
+  if (income.frequency === 'once') return income.payAnchor ? `On ${income.payAnchor}` : 'No date set'
   if (!income.startMonth && !income.endMonth) return 'Always'
   if (income.startMonth && income.endMonth) return `${income.startMonth} → ${income.endMonth}`
   if (income.startMonth) return `From ${income.startMonth}`
@@ -187,13 +188,15 @@ function IncomeForm({ income, onClose }: { income?: IncomeSource; onClose: () =>
     if (!label.trim()) return setError('Give this source a name.')
     if (value <= 0) return setError('Enter an amount greater than zero.')
     if (startMonth && endMonth && endMonth < startMonth) return setError('The end month comes before the start month.')
+    // Without a date a one-off has no month to belong to, so it would vanish.
+    if (frequency === 'once' && !payAnchor) return setError('A one-off needs the date it arrived.')
 
     const payload = {
       label: label.trim(),
       amount: value,
       frequency,
-      startMonth: startMonth || undefined,
-      endMonth: endMonth || undefined,
+      startMonth: frequency === 'once' ? undefined : startMonth || undefined,
+      endMonth: frequency === 'once' ? undefined : endMonth || undefined,
       payAnchor: payAnchor || undefined,
       note: note.trim() || undefined,
     }
@@ -243,7 +246,7 @@ function IncomeForm({ income, onClose }: { income?: IncomeSource; onClose: () =>
           <div className="faint numeric">That works out to about {monthly.toFixed(2)} per month.</div>
         )}
 
-        <Field label="Payday">
+        <Field label={frequency === 'once' ? 'Date received' : 'Payday'}>
           <input type="date" value={payAnchor} onChange={(e) => setPayAnchor(e.target.value)} />
         </Field>
         <div className="faint">
@@ -252,10 +255,13 @@ function IncomeForm({ income, onClose }: { income?: IncomeSource; onClose: () =>
               <strong>{describePayday({ ...(income ?? {}), frequency, payAnchor } as IncomeSource)}</strong>
               {upcomingPreview.length > 0 && <> — next: {upcomingPreview.join(', ')}</>}
             </>
+          ) : frequency === 'once' ? (
+            'When did (or will) this land? A one-off counts only in that month.'
           ) : (
             'Pick any date you were paid (past or future) and the frequency fills in the rest. Optional, but it powers payday countdowns and planning.'
           )}
         </div>
+        {frequency !== 'once' && (
         <div className="form-row">
           <Field label="Starts (optional)">
             <input type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} max={endMonth || undefined} />
@@ -264,6 +270,7 @@ function IncomeForm({ income, onClose }: { income?: IncomeSource; onClose: () =>
             <input type="month" value={endMonth} onChange={(e) => setEndMonth(e.target.value)} min={startMonth || undefined} />
           </Field>
         </div>
+        )}
         <Field label="Note (optional)" error={error}>
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="After tax" />
         </Field>

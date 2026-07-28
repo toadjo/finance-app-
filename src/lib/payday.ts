@@ -85,6 +85,8 @@ export function describePayday(income: IncomeSource, locale = 'en-US'): string {
   if (!income.payAnchor) return 'No payday set'
   const [, , day] = income.payAnchor.split('-').map(Number)
   switch (income.frequency) {
+    case 'once':
+      return 'One-off'
     case 'weekly':
     case 'biweekly': {
       const weekday = new Date(`${income.payAnchor}T00:00:00`).toLocaleDateString(locale, { weekday: 'long' })

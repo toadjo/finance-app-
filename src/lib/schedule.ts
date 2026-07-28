@@ -11,7 +11,7 @@ import { addDays, addMonthsToDay, monthOf, monthsBetween, type DayKey, type Mont
 /** Months either side of a target we're willing to step through. */
 const HORIZON_MONTHS = 600
 
-const MONTH_STRIDE: Record<Exclude<Frequency, 'weekly' | 'biweekly'>, number> = {
+const MONTH_STRIDE: Record<Exclude<Frequency, 'weekly' | 'biweekly' | 'once'>, number> = {
   monthly: 1,
   quarterly: 3,
   yearly: 12,
@@ -23,6 +23,9 @@ function isDayStepped(frequency: Frequency): frequency is 'weekly' | 'biweekly' 
 
 /** Every occurrence landing inside `month`, earliest first. */
 export function occurrencesIn(anchor: DayKey, frequency: Frequency, month: MonthKey): DayKey[] {
+  // A one-off happens exactly once, on its own date.
+  if (frequency === 'once') return monthOf(anchor) === month ? [anchor] : []
+
   const distance = monthsBetween(monthOf(anchor), month)
   if (Math.abs(distance) > HORIZON_MONTHS) return []
 

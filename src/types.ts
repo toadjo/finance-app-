@@ -1,4 +1,5 @@
-export type Frequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly'
+/** `once` is a single dated event — a bonus, a refund — not a repeating cadence. */
+export type Frequency = 'once' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly'
 
 /** A recurring (or one-off) source of money coming in. */
 export interface IncomeSource {
