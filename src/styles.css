@@ -864,9 +864,11 @@ th.right {
     grid-template-rows: auto 1fr;
   }
 
-  .titlebar {
-    display: none;
-  }
+  /* The title bar is deliberately NOT hidden here. On a phone there is nothing to
+     hide — <Titlebar> renders null without the desktop bridge — so this breakpoint
+     only ever catches a narrow desktop window, where the traffic lights are the
+     window's only controls. The window can be dragged down to 720px, so hiding them
+     left a band in which the app could not be closed, minimised or zoomed. */
 
   /* The sidebar becomes an iOS-style tab bar pinned to the bottom. */
   .sidebar {
@@ -1069,12 +1071,20 @@ th.right {
 /* ---------- crash screen ---------- */
 
 /* Deliberately plain: this renders when the rest of the app could not. */
+.crash-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+}
+
 .crash {
+  flex: 1;
+  min-height: 0;
   display: grid;
   place-items: center;
-  min-height: 100%;
+  overflow: auto;
   padding: 24px;
-  background: var(--bg);
 }
 
 .crash-panel {

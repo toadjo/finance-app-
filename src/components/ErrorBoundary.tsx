@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { STORAGE_KEY } from '../lib/storage'
+import { Titlebar } from './Titlebar'
 
 /**
  * The last line of defence.
@@ -51,26 +52,31 @@ export class ErrorBoundary extends Component<Props, State> {
     if (!error) return this.props.children
 
     return (
-      <div className="crash">
-        <div className="crash-panel">
-          <h1>Ledger hit a problem</h1>
-          <p>
-            Something went wrong while drawing the app. Your data on disk hasn't been touched — reloading
-            usually clears it.
-          </p>
-          <pre className="crash-detail">{error.message || String(error)}</pre>
-          <div className="form-actions">
-            <button className="btn danger" onClick={this.setAsideSavedData}>
-              Start with a clean ledger
-            </button>
-            <button className="btn primary" onClick={() => location.reload()}>
-              Reload
-            </button>
+      <div className="crash-shell">
+        {/* The window is frameless: these are its only controls. Losing them along
+            with the rest of the tree would leave a crashed app impossible to close. */}
+        <Titlebar title="Ledger" />
+        <div className="crash">
+          <div className="crash-panel">
+            <h1>Ledger hit a problem</h1>
+            <p>
+              Something went wrong while drawing the app. Your data on disk hasn't been touched — reloading
+              usually clears it.
+            </p>
+            <pre className="crash-detail">{error.message || String(error)}</pre>
+            <div className="form-actions">
+              <button className="btn danger" onClick={this.setAsideSavedData}>
+                Start with a clean ledger
+              </button>
+              <button className="btn primary" onClick={() => location.reload()}>
+                Reload
+              </button>
+            </div>
+            <p className="faint">
+              “Start with a clean ledger” keeps your current data under a separate key rather than deleting
+              it, and on the desktop the JSON backups in your data folder are untouched either way.
+            </p>
           </div>
-          <p className="faint">
-            “Start with a clean ledger” keeps your current data under a separate key rather than deleting
-            it, and on the desktop the JSON backups in your data folder are untouched either way.
-          </p>
         </div>
       </div>
     )
