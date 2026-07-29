@@ -144,7 +144,10 @@ export function IncomeView({ month }: { month: MonthKey }) {
                       </button>
                       <button
                         className="btn danger small"
-                        onClick={() => dispatch({ type: 'income/remove', id: income.id })}
+                        onClick={() => {
+                          if (confirm(`Delete "${income.label}"? Past months will be recalculated without it.`))
+                            dispatch({ type: 'income/remove', id: income.id })
+                        }}
                       >
                         Delete
                       </button>

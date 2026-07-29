@@ -10,10 +10,19 @@ import { Modal } from './components/ui'
 import { Titlebar } from './components/Titlebar'
 import type { AppState } from './types'
 import { addMonths, currentMonth, formatMonth } from './lib/date'
+import { normaliseState } from './lib/storage'
 import { desktop, isDesktop } from './lib/desktop'
 import { readTheme, useTheme } from './lib/theme'
 
 export type View = 'dashboard' | 'expenses' | 'recurring' | 'income' | 'goals' | 'settings'
+
+/**
+ * How far ahead you can plan. Far enough to be useful, near enough that the numbers
+ * are still extrapolated from real history rather than invented.
+ */
+const PLANNING_HORIZON_MONTHS = 24
+
+const lastPlannableMonth = () => addMonths(currentMonth(), PLANNING_HORIZON_MONTHS)
 
 const NAV: { id: View; label: string; icon: string; title: string; subtitle: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '◎', title: 'Dashboard', subtitle: 'Your month at a glance' },
@@ -51,7 +60,9 @@ function Shell() {
     return bridge.onMenu((command) => {
       if (command.startsWith('view:')) setView(command.slice(5) as View)
       else if (command === 'month:prev') setMonth((m) => addMonths(m, -1))
-      else if (command === 'month:next') setMonth((m) => (m >= currentMonth() ? m : addMonths(m, 1)))
+      // Stepping forward plans ahead, exactly as the month picker does — the two
+      // must agree or Ctrl+→ silently stops at a different place than the › button.
+      else if (command === 'month:next') setMonth((m) => (m >= lastPlannableMonth() ? m : addMonths(m, 1)))
       else if (command === 'month:today') setMonth(currentMonth())
       else if (command === 'theme') setTheme(readTheme() === 'dark' ? 'light' : 'dark')
       else setView('settings')
@@ -81,8 +92,8 @@ function Shell() {
     void bridge.readSnapshot().then((contents) => {
       if (!contents) return
       try {
-        const parsed = JSON.parse(contents) as AppState
-        if (parsed.expenses?.length || parsed.incomes?.length || parsed.goals?.length) setRecovery(parsed)
+        const parsed = normaliseState(JSON.parse(contents))
+        if (parsed.expenses.length || parsed.incomes.length || parsed.goals.length) setRecovery(parsed)
       } catch {
         /* an unreadable snapshot is not worth interrupting startup over */
       }
@@ -149,9 +160,7 @@ function Shell() {
                   className="icon-button"
                   aria-label="Next month"
                   onClick={() => setMonth(addMonths(month, 1))}
-                  // Planning ahead is the point; two years is far enough to be useful
-                  // without letting you wander somewhere meaningless.
-                  disabled={month >= addMonths(currentMonth(), 24)}
+                  disabled={month >= lastPlannableMonth()}
                 >
                   ›
                 </button>

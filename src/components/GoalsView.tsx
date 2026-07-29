@@ -142,7 +142,14 @@ export function GoalsView({ month }: { month: MonthKey }) {
                 onToggle={() => setExpanded(expanded === p.goal.id ? null : p.goal.id)}
                 onEdit={() => setEditing(p.goal)}
                 onContribute={() => setContributing(p.goal)}
-                onDelete={() => dispatch({ type: 'goal/remove', id: p.goal.id })}
+                onDelete={() => {
+                  // Deleting a goal takes every contribution logged against it, and
+                  // there is no undo — the same guard categories and rules already have.
+                  const logged = p.goal.contributions.length
+                  const detail = logged > 0 ? ` and the ${logged} contribution${logged === 1 ? '' : 's'} logged against it` : ''
+                  if (confirm(`Delete "${p.goal.name}"${detail}? This cannot be undone.`))
+                    dispatch({ type: 'goal/remove', id: p.goal.id })
+                }}
               />
             ))}
           </div>

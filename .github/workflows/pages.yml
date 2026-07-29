@@ -14,10 +14,12 @@ permissions:
   pages: write
   id-token: write
 
-# Never let two deploys race; the newest wins.
+# One deploy at a time. A run already publishing is left to finish rather than
+# cancelled: interrupting `deploy-pages` mid-flight leaves the Pages deployment
+# half-claimed, and the run that follows it fails on a state it didn't create.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:

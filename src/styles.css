@@ -864,9 +864,11 @@ th.right {
     grid-template-rows: auto 1fr;
   }
 
-  .titlebar {
-    display: none;
-  }
+  /* The title bar is deliberately NOT hidden here. On a phone there is nothing to
+     hide — <Titlebar> renders null without the desktop bridge — so this breakpoint
+     only ever catches a narrow desktop window, where the traffic lights are the
+     window's only controls. The window can be dragged down to 720px, so hiding them
+     left a band in which the app could not be closed, minimised or zoomed. */
 
   /* The sidebar becomes an iOS-style tab bar pinned to the bottom. */
   .sidebar {
@@ -1064,4 +1066,59 @@ th.right {
   color: var(--text-muted);
   font-size: 12.5px;
   line-height: 1.45;
+}
+
+/* ---------- crash screen ---------- */
+
+/* Deliberately plain: this renders when the rest of the app could not. */
+.crash-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+}
+
+.crash {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 24px;
+}
+
+.crash-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 560px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow);
+}
+
+.crash-panel h1 {
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.crash-panel p {
+  color: var(--text-muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.crash-detail {
+  max-height: 180px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-hover);
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }

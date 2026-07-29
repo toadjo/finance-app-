@@ -39,8 +39,15 @@ if (!dist?.files) {
   if (!names.some((n) => n.endsWith('.css'))) failures.push('no stylesheet in dist/assets')
 }
 
-if (!entry('electron/main.cjs')) failures.push('electron/main.cjs is missing')
-if (!entry('electron/preload.cjs')) failures.push('electron/preload.cjs is missing')
+// Everything main.cjs requires at startup: without any of them the app won't launch.
+for (const file of ['main.cjs', 'preload.cjs', 'updater.cjs', 'rendererPath.cjs']) {
+  if (!entry(`electron/${file}`)) failures.push(`electron/${file} is missing`)
+}
+
+// Tests have no business in a shipped package.
+for (const name of Object.keys(entry('electron')?.files ?? {})) {
+  if (name.endsWith('.test.mjs')) failures.push(`electron/${name} was packaged; tests should be excluded`)
+}
 
 if (failures.length > 0) {
   console.error('✗ Packaged app is incomplete:')

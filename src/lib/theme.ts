@@ -18,8 +18,14 @@ export function readTheme(): Theme {
   return localStorage.getItem(KEY) === 'dark' ? 'dark' : 'light'
 }
 
+/** Keep these in step with --bg in styles.css. */
+const CHROME_COLOR: Record<Theme, string> = { light: '#f2f2f7', dark: '#1e1e1e' }
+
 export function applyTheme(theme: Theme): void {
   document.documentElement.classList.toggle('dark', theme === 'dark')
+  // Installed on a phone, the status bar takes its colour from this tag rather than
+  // from the page, so it has to follow the toggle or it sits at the wrong shade.
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', CHROME_COLOR[theme])
   try {
     localStorage.setItem(KEY, theme)
   } catch {
