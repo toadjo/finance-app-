@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '../state/store'
 import type { AppState, Category } from '../types'
 import { desktop, type BackupInfo, type UpdateStatus } from '../lib/desktop'
+import { normaliseState } from '../lib/storage'
 import { formatMoney, parseAmount } from '../lib/money'
 import { sampleState } from '../lib/sample'
 import { useTheme, type Theme } from '../lib/theme'
@@ -39,16 +40,21 @@ export function SettingsView() {
   }
 
   function applyImported(contents: string, source: string) {
+    let state: AppState
     try {
-      const parsed = JSON.parse(contents) as AppState
-      if (!Array.isArray(parsed.expenses) || !Array.isArray(parsed.goals)) throw new Error('unrecognised file')
-      dispatch({ type: 'state/replace', state: parsed })
-      // Snapshot immediately so the previous data is backed up before it's replaced.
-      void bridge?.save(contents, 'import')
-      setMessage(`Data imported from ${source}.`)
+      const parsed: unknown = JSON.parse(contents)
+      if (!parsed || typeof parsed !== 'object') throw new Error('not a Ledger export')
+      // Never dispatch a foreign payload as-is: a file that merely looks plausible
+      // takes the app down on the next render, and it's already been saved by then.
+      state = normaliseState(parsed)
     } catch {
       setMessage('That file could not be read as a Ledger export.')
+      return
     }
+    dispatch({ type: 'state/replace', state })
+    // Snapshot immediately so the previous data is backed up before it's replaced.
+    void bridge?.save(JSON.stringify(state, null, 2), 'import')
+    setMessage(`Data imported from ${source}.`)
   }
 
   async function importData(file?: File) {
@@ -354,7 +360,7 @@ function BackupsPanel({ onMessage }: { onMessage: (text: string) => void }) {
   async function restore(name: string) {
     if (!confirm(`Replace your current data with the backup from ${name}?`)) return
     try {
-      const parsed = JSON.parse(await bridge.readBackup(name)) as AppState
+      const parsed = normaliseState(JSON.parse(await bridge.readBackup(name)))
       dispatch({ type: 'state/replace', state: parsed })
       onMessage(`Restored from ${name}.`)
       await refresh()

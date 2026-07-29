@@ -6,6 +6,7 @@ const fs = require('node:fs')
 const fsp = require('node:fs/promises')
 const { pathToFileURL } = require('node:url')
 const updates = require('./updater.cjs')
+const { resolveRendererPath } = require('./rendererPath.cjs')
 
 const DEV_SERVER = process.env.VITE_DEV_SERVER_URL
 const RENDERER_DIR = path.join(__dirname, '..', 'dist')
@@ -379,13 +380,15 @@ if (!app.requestSingleInstanceLock()) {
     lockDownSession(session.defaultSession)
     await ensureDirs()
 
-    protocol.handle('app', (request) => {
-      const { pathname } = new URL(request.url)
-      const relative = pathname === '/' ? 'index.html' : pathname.slice(1)
-      const resolved = path.join(RENDERER_DIR, relative)
-      // Refuse anything that resolves outside the bundled renderer.
-      if (!resolved.startsWith(RENDERER_DIR)) return new Response('Forbidden', { status: 403 })
-      return net.fetch(pathToFileURL(resolved).toString())
+    protocol.handle('app', async (request) => {
+      // Refuses anything resolving outside the bundled renderer; see rendererPath.cjs.
+      const target = resolveRendererPath(RENDERER_DIR, request.url)
+      if (target.status) return new Response(target.status === 400 ? 'Bad Request' : 'Forbidden', { status: target.status })
+      try {
+        return await net.fetch(pathToFileURL(target.file).toString())
+      } catch {
+        return new Response('Not Found', { status: 404 })
+      }
     })
 
     registerIpc()

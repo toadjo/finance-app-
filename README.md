@@ -47,7 +47,7 @@ Fedora and Debian, and claiming it would collide with a real distro package. Bui
 ```bash
 npm run electron:dev   # Vite + Electron with hot reload
 npm run dev            # renderer only, in a browser at localhost:5173
-npm test               # 140 unit tests over the maths
+npm test               # 160 unit tests over the maths and the data safety net
 npm run typecheck
 ```
 
@@ -202,6 +202,14 @@ backup of the previous state is taken before any import or reset. If the browser
 the file survives, the app offers to restore it on launch. Settings → Backups lists them all with one-click
 restore, and File → Export writes a portable JSON copy anywhere you like.
 
+Every route by which data enters — the browser store, an imported file, a restored backup, the recovered
+snapshot — is normalised before it reaches the app: missing fields are filled in, wrong types are coerced,
+and only the individual rows that can't be made sense of are dropped, so one bad line in a hand-edited
+export costs you that line rather than the file. A currency code `Intl` won't accept falls back rather than
+throwing from inside every amount on screen. And if a render ever does fail anyway, you get a screen
+explaining what broke with a way out, instead of a blank window — the saved ledger is set aside under its
+own key rather than deleted.
+
 ## How offline is enforced
 
 - Every request whose scheme isn't the app's own is cancelled by a session-level handler and logged.
@@ -221,7 +229,7 @@ they can't escape the backup directory.
 
 ```
 electron/       main process: window, native menu, offline lockdown, file IPC
-src/lib/        date, money, storage, selectors — the arithmetic
+src/lib/        date, money, storage (load, save, normalise), selectors — the arithmetic
 src/lib/intelligence/   categorize, recurring, insights, coach — the smarts, each with tests
 src/state/      reducer + context, persisted to localStorage and mirrored to disk
 src/components/ one file per view, plus shared UI primitives and hand-rolled SVG charts
